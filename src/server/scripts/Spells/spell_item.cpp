@@ -357,7 +357,7 @@ class spell_item_aura_of_madness : public AuraScript
             { SPELL_SOCIOPATH, SPELL_DELUSIONAL, SPELL_KLEPTOMANIA, SPELL_PARANOIA, SPELL_MANIC, SPELL_MARTYR_COMPLEX },
             //CLASS_PRIEST
             { SPELL_MEGALOMANIA, SPELL_PARANOIA, SPELL_MANIC, SPELL_NARCISSISM, SPELL_MARTYR_COMPLEX, SPELL_DEMENTIA },
-            //CLASS_DEATH_KNIGHT
+            //CLASS_NECROMANCER
             { SPELL_SOCIOPATH, SPELL_DELUSIONAL, SPELL_KLEPTOMANIA, SPELL_PARANOIA, SPELL_MANIC, SPELL_MARTYR_COMPLEX },
             //CLASS_SHAMAN
             { SPELL_MEGALOMANIA, SPELL_PARANOIA, SPELL_MANIC, SPELL_NARCISSISM, SPELL_MARTYR_COMPLEX, SPELL_DEMENTIA },
@@ -606,7 +606,7 @@ class spell_item_deathbringers_will : public SpellScriptLoader
                     { Agility, Haste, AttackPower },
                     //CLASS_PRIEST
                     { },
-                    //CLASS_DEATH_KNIGHT
+                    //CLASS_NECROMANCER
                     { Strength, Critical, Haste },
                     //CLASS_SHAMAN
                     { Agility, Haste, AttackPower },
@@ -942,7 +942,7 @@ class spell_item_dire_brew : public AuraScript
                 break;
             case CLASS_WARRIOR:
             case CLASS_PALADIN:
-            case CLASS_DEATH_KNIGHT:
+            case CLASS_NECROMANCER:
                 model = gender == GENDER_MALE ? MODEL_CLASS_PLATE_MALE : MODEL_CLASS_PLATE_FEMALE;
                 break;
             default:
@@ -1137,7 +1137,7 @@ class spell_item_flask_of_the_north : public SpellScript
             case CLASS_PRIEST:
                 possibleSpells.push_back(SPELL_FLASK_OF_THE_NORTH_SP);
                 break;
-            case CLASS_DEATH_KNIGHT:
+            case CLASS_NECROMANCER:
             case CLASS_WARRIOR:
                 possibleSpells.push_back(SPELL_FLASK_OF_THE_NORTH_STR);
                 break;

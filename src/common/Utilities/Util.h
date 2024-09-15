@@ -251,7 +251,7 @@ struct WcharToUpper
         if (wchar == 0x0451)                                     // CYRILLIC SMALL LETTER IO
             return wchar_t(0x0401);
 
-        return wchar;
+   return wchar;
     }
 } inline constexpr wcharToUpper;
 
@@ -268,22 +268,22 @@ struct WcharToLower
     wchar_t operator()(wchar_t wchar) const
     {
         if (wchar >= L'A' && wchar <= L'Z')                      // LATIN CAPITAL LETTER A - LATIN CAPITAL LETTER Z
-            return wchar_t(uint16(wchar)+0x0020);
+            return wchar_t(uint16(wchar) + 0x0020);
         if (wchar >= 0x00C0 && wchar <= 0x00D6)                  // LATIN CAPITAL LETTER A WITH GRAVE - LATIN CAPITAL LETTER O WITH DIAERESIS
-            return wchar_t(uint16(wchar)+0x0020);
+            return wchar_t(uint16(wchar) + 0x0020);
         if (wchar >= 0x00D8 && wchar <= 0x00DE)                  // LATIN CAPITAL LETTER O WITH STROKE - LATIN CAPITAL LETTER THORN
-            return wchar_t(uint16(wchar)+0x0020);
+            return wchar_t(uint16(wchar) + 0x0020);
         if (wchar >= 0x0100 && wchar <= 0x012E)                  // LATIN CAPITAL LETTER A WITH MACRON - LATIN CAPITAL LETTER I WITH OGONEK (only %2=0)
         {
             if (wchar % 2 == 0)
-                return wchar_t(uint16(wchar)+0x0001);
+                return wchar_t(uint16(wchar) + 0x0001);
         }
         if (wchar == 0x1E9E)                                     // LATIN CAPITAL LETTER SHARP S
             return wchar_t(0x00DF);
         if (wchar == 0x0401)                                     // CYRILLIC CAPITAL LETTER IO
             return wchar_t(0x0451);
         if (wchar >= 0x0410 && wchar <= 0x042F)                  // CYRILLIC CAPITAL LETTER A - CYRILLIC CAPITAL LETTER YA
-            return wchar_t(uint16(wchar)+0x0020);
+            return wchar_t(uint16(wchar) + 0x0020);
 
         return wchar;
     }

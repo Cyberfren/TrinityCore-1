@@ -946,6 +946,24 @@ dtStatus PathGenerator::FindSmoothPath(float const* startPos, float const* endPo
     // this is most likely a loop
     return nsmoothPath < MAX_POINT_PATH_LENGTH ? DT_SUCCESS : DT_FAILURE;
 }
+float PathGenerator::GetTotalLength() const
+{
+    float len = 0.0f;
+    if (_pathPoints.size() < 2)
+        return len;
+
+    for (uint32 i = 1; i < _pathPoints.size() - 1; ++i)
+    {
+        G3D::Vector3 node = _pathPoints[i];
+        G3D::Vector3 prev = _pathPoints[i - 1];
+        float xd = node.x - prev.x;
+        float yd = node.y - prev.y;
+        float zd = node.z - prev.z;
+        len += sqrtf(xd * xd + yd * yd + zd * zd);
+    }
+
+    return len;
+}
 
 bool PathGenerator::InRangeYZX(float const* v1, float const* v2, float r, float h) const
 {

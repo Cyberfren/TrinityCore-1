@@ -132,7 +132,7 @@ enum LfgRoleCheckState
 enum LfgRoleClasses {
     TANK = (1 << (CLASS_WARRIOR - 1)) |
            (1 << (CLASS_PALADIN - 1)) |
-           (1 << (CLASS_DEATH_KNIGHT - 1)) |
+           (1 << (CLASS_NECROMANCER - 1)) |
            (1 << (CLASS_DRUID - 1)),
 
     HEALER = (1 << (CLASS_PALADIN - 1)) |

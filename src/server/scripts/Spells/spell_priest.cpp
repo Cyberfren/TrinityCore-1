@@ -36,6 +36,10 @@
 
 enum PriestSpells
 {
+
+    SPELL_PRIEST_VOID_SHIFT                               = 81305,
+    SPELL_PRIEST_LEAP_OF_FAITH                      = 81304,
+    SPELL_PRIEST_LEAP_OF_FAITH_INITIAL              = 81303,
     SPELL_PRIEST_BLESSED_RECOVERY_R1                = 27813,
     SPELL_PRIEST_DIVINE_AEGIS                       = 47753,
     SPELL_PRIEST_EMPOWERED_RENEW                    = 63544,
@@ -175,6 +179,165 @@ class spell_pri_aq_3p_bonus : public AuraScript
         OnEffectProc += AuraEffectProcFn(spell_pri_aq_3p_bonus::HandleProc, EFFECT_0, SPELL_AURA_DUMMY);
     }
 };
+/*
+class spell_pri_void_shift : public SpellScript
+{
+    PrepareSpellScript(spell_pri_void_shift);
+
+
+    SpellCastResult CheckCast()
+    {
+        Unit* target = GetExplTargetUnit();
+        if (!target)
+            return SPELL_FAILED_NO_VALID_TARGETS;
+
+        if (target->GetTypeId() == TYPEID_PLAYER)
+            return SPELL_CAST_OK;
+
+        return SPELL_FAILED_BAD_TARGETS;
+    }
+
+   void HandleDummy(SpellEffIndex )
+    {
+
+       Unit* priest = GetCaster();
+       Unit* target = GetHitUnit();
+
+        float priestPct = target->GetHealthPct();
+        float targetPct = priest->GetHealthPct();
+
+
+        uint32 priestNewHealth = priest->GetMaxHealth() * priestPct / 100.f;
+        uint32 targetNewHealth = target->GetMaxHealth() * targetPct / 100.f;
+
+        int32 priestHealthDiff = int32(priestNewHealth) - int32(priest->GetHealth());
+        int32 targetHealthDiff = int32(targetNewHealth) - int32(target->GetHealth());
+
+        if (priestHealthDiff != 0)
+        {
+            CastSpellExtraArgs extraArgs(SPELLVALUE_BASE_POINT0, std::abs(priestHealthDiff));
+            priest->CastSpell(priest, 81306, extraArgs);
+        }
+
+        if (targetHealthDiff != 0)
+        {
+            CastSpellExtraArgs extraArgs(SPELLVALUE_BASE_POINT0, std::abs(targetHealthDiff));
+            priest->CastSpell(target, 81306, extraArgs);
+        }
+    }
+
+    void Register() override
+    {
+        OnCheckCast += SpellCheckCastFn(spell_pri_void_shift::CheckCast);
+        OnEffectHitTarget += SpellEffectFn(spell_pri_void_shift::HandleDummy, EFFECT_0, SPELL_EFFECT_DUMMY);
+    }
+};*/
+
+class spell_pri_void_shift : public SpellScript
+{
+    PrepareSpellScript(spell_pri_void_shift);
+
+    bool Validate(SpellInfo const* /*spellInfo*/) override
+    {
+        if (!sSpellMgr->GetSpellInfo(SPELL_PRIEST_VOID_SHIFT))
+            return false;
+        return true;
+    }
+
+    SpellCastResult CheckCast()
+    {
+        if (Unit* target = GetExplTargetUnit())
+        {
+            if (target->GetTypeId() != TYPEID_PLAYER)
+                return SPELL_FAILED_BAD_TARGETS;
+        }
+        return SPELL_CAST_OK;
+    }
+
+    void HandleDummy(SpellEffIndex /*effIndex*/)
+    {
+        if (Player* _player = GetCaster()->ToPlayer())
+        {
+            if (Unit* target = GetHitUnit())
+            {
+                // Get health percentages as floats
+                float playerPct = _player->GetHealthPct();
+                float targetPct = target->GetHealthPct();
+
+                // Ensure minimum health percentage is 15%
+                playerPct = std::max(playerPct, 15.0f);
+                targetPct = std::max(targetPct, 15.0f);
+
+                // Convert the percentages to fractions of 1 (0.15 for 15%)
+                playerPct /= 100.0f;
+                targetPct /= 100.0f;
+
+                // Calculate new health based on the swapped percentages
+                uint32 newPlayerHealth = static_cast<uint32>(_player->GetMaxHealth() * targetPct);
+                uint32 newTargetHealth = static_cast<uint32>(target->GetMaxHealth() * playerPct);
+
+                // Apply the new health values
+                _player->SetHealth(newPlayerHealth);
+                target->SetHealth(newTargetHealth);
+            }
+        }
+    }
+
+    void Register() override
+    {
+        OnCheckCast += SpellCheckCastFn(spell_pri_void_shift::CheckCast);
+        OnEffectHitTarget += SpellEffectFn(spell_pri_void_shift::HandleDummy, EFFECT_0, SPELL_EFFECT_DUMMY);
+    }
+};
+
+class spell_pri_leap_of_faith : public SpellScript
+{
+    PrepareSpellScript(spell_pri_leap_of_faith);
+
+    void HandleDummy(SpellEffIndex /*effIndex*/)
+    {
+        if (Unit* target = GetHitUnit())           
+                target->CastSpell(GetExplTargetDest()->GetPosition(), GetEffectValue(), true);
+    }
+
+    void Register() override
+    {
+        OnEffectHitTarget += SpellEffectFn(spell_pri_leap_of_faith::HandleDummy, EFFECT_0, SPELL_EFFECT_DUMMY);
+    }
+};
+
+class spell_pri_leap_of_faith_initial : public SpellScript
+{
+    PrepareSpellScript(spell_pri_leap_of_faith_initial);
+
+    SpellCastResult CheckCast()
+    {
+        Unit* caster = GetCaster();
+        // Death Grip should not be castable while jumping/falling
+        if (caster->HasUnitState(UNIT_STATE_JUMPING) || caster->HasUnitMovementFlag(MOVEMENTFLAG_FALLING))
+            return SPELL_FAILED_MOVING;
+
+        // Patch 3.3.3 (2010-03-23): Minimum range has been changed to 8 yards in PvP.
+        Unit* target = GetExplTargetUnit();
+        if (target && target->GetTypeId() == TYPEID_PLAYER)
+            if (caster->GetDistance(target) < 8.f)
+                return SPELL_FAILED_TOO_CLOSE;
+
+        return SPELL_CAST_OK;
+    }
+
+    void HandleDummy(SpellEffIndex /*effIndex*/)
+    {
+        GetCaster()->CastSpell(GetHitUnit(), SPELL_PRIEST_LEAP_OF_FAITH, true);
+    }
+
+    void Register() override
+    {
+        OnCheckCast += SpellCheckCastFn(spell_pri_leap_of_faith_initial::CheckCast);
+        OnEffectHitTarget += SpellEffectFn(spell_pri_leap_of_faith_initial::HandleDummy, EFFECT_0, SPELL_EFFECT_DUMMY);
+    }
+};
+
 
 // -27811 - Blessed Recovery
 class spell_pri_blessed_recovery : public AuraScript
@@ -1327,4 +1490,7 @@ void AddSC_priest_spell_scripts()
     RegisterSpellScript(spell_pri_t5_heal_2p_bonus);
     RegisterSpellScript(spell_pri_t10_heal_2p_bonus);
     RegisterSpellScript(spell_pri_power_infusion);
+    RegisterSpellScript(spell_pri_leap_of_faith);
+    RegisterSpellScript(spell_pri_leap_of_faith_initial);
+    RegisterSpellScript(spell_pri_void_shift);
 }

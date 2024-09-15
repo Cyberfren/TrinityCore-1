@@ -32,6 +32,7 @@
 #include "SpellMgr.h"
 #include "SpellScript.h"
 #include "Unit.h"
+#include "Position.h"
 
 enum ShamanSpells
 {
@@ -93,6 +94,8 @@ enum ShamanSpells
     SPELL_SHAMAN_MAELSTROM_POWER                = 70831,
     SPELL_SHAMAN_T10_ENHANCEMENT_4P_BONUS       = 70832,
     SPELL_SHAMAN_BLESSING_OF_THE_ETERNALS_R1    = 51554,
+    SPELL_REDUCE_FS_CD                          = 80299,
+    SPELL_SHAMAN_FERAL_SPIRIT                   = 51533,
 };
 
 enum ShamanSpellIcons
@@ -100,6 +103,141 @@ enum ShamanSpellIcons
     SHAMAN_ICON_ID_RESTORATIVE_TOTEMS           = 338,
     SHAMAN_ICON_ID_SHAMAN_LAVA_FLOW             = 3087,
     SHAMAN_ICON_ID_TOTEM_OF_WRATH               = 2019
+};
+
+/*class spell_sha_totemic_projection : public SpellScript
+{
+    PrepareSpellScript(spell_sha_totemic_projection);
+
+    void SelectDest()
+    {
+        Unit* caster = GetCaster();
+        if (!caster || !caster->GetMap())
+            return;
+
+        Position const* sumpos = GetExplTargetDest();
+        TempSummon* summon = caster->GetMap()->SummonCreature(47319, *sumpos, NULL, 0, caster, ObjectGuid::Empty, GetSpellInfo()->Id);
+        if (!summon)
+            return;
+
+        if (Creature* totem = caster->GetMap()->GetCreature(caster->m_SummonSlot[1]))
+        {
+            Position pos;
+            summon->GetFirstCollisionPosition(2.5f, static_cast<float>(-M_PI / 4));
+            totem->NearTeleportTo(pos.GetPositionX(), pos.GetPositionY(), pos.GetPositionZ(), caster->GetOrientation());
+        }
+        if (Creature* totem = caster->GetMap()->GetCreature(caster->m_SummonSlot[2]))
+        {
+            Position pos;
+            summon->GetFirstCollisionPosition(2.5f, static_cast<float>(-3 * M_PI / 4));
+            totem->NearTeleportTo(pos.GetPositionX(), pos.GetPositionY(), pos.GetPositionZ(), caster->GetOrientation());
+        }
+        if (Creature* totem = caster->GetMap()->GetCreature(caster->m_SummonSlot[3]))
+        {
+            Position pos;
+            summon->GetFirstCollisionPosition(2.5f, static_cast<float>(3 * M_PI / 4));
+            totem->NearTeleportTo(pos.GetPositionX(), pos.GetPositionY(), pos.GetPositionZ(), caster->GetOrientation());
+        }
+        if (Creature* totem = caster->GetMap()->GetCreature(caster->m_SummonSlot[4]))
+        {
+            Position pos;
+            summon->GetFirstCollisionPosition(2.5f, static_cast<float>(M_PI / 4));
+            totem->NearTeleportTo(pos.GetPositionX(), pos.GetPositionY(), pos.GetPositionZ(), caster->GetOrientation());
+        }
+    }
+
+    void Register()
+    {
+        BeforeCast += SpellCastFn(spell_sha_totemic_projection::SelectDest);
+    }
+};*/
+/*
+class spell_sha_totemic_projection : public SpellScript
+{
+    PrepareSpellScript(spell_sha_totemic_projection);
+
+    void MoveTotems(SpellEffIndex)
+    {
+        Unit* shaman = GetCaster();
+        for (int32 i = 0; i < 4; ++i)
+        {
+            Position pos = GetHitDest()->GetPosition();
+            Creature* totem = shaman->GetMap()->GetCreature(shaman->m_SummonSlot[SUMMON_SLOT_TOTEM_FIRE + i]);
+            if (totem && totem->IsTotem())
+            {
+                uint32 spellId = totem->GetUInt32Value(UNIT_FIELD_CREATEDBY);
+                SpellInfo const* spellInfo = sSpellMgr->GetSpellInfo(spellId);
+                if (!spellInfo)
+                    return;
+
+                float angle = spellInfo->_effects[EFFECT_0].TargetA.CalcDirectionAngle();
+                float objSize = shaman->GetObjectScale();
+                float dist = spellInfo->_effects[EFFECT_0].CalcRadius(shaman);
+                if (dist < objSize)
+                    dist = objSize;
+
+                totem->MovePositionToFirstCollision(pos, dist, angle);
+                totem->NearTeleportTo(pos.GetPositionX(), pos.GetPositionY(), pos.GetPositionZ(), totem->GetOrientation());
+            }
+        }
+    }
+
+    void Register() override
+    {
+        OnEffectHit += SpellEffectFn(spell_sha_totemic_projection::MoveTotems, EFFECT_1, SPELL_EFFECT_DUMMY);
+    }
+};
+*/
+
+
+
+
+class spell_sha_totemic_projection : public SpellScript
+{
+    PrepareSpellScript(spell_sha_totemic_projection);
+
+
+    void MoveTotems(SpellEffIndex)
+    {
+        Unit* shaman = GetCaster();
+        Position basePos = GetHitDest()->GetPosition();
+
+        // Square dimensions (2x2 grid), adjust the spacing as necessary
+        const float spacing = 2.0f; // Distance between totems
+
+        // Coordinates for 4 totems in a square relative to the base position
+        float offsets[4][2] = {
+            {-spacing, spacing},   // Top-left
+            {spacing, spacing},    // Top-right
+            {-spacing, -spacing},  // Bottom-left
+            {spacing, -spacing}    // Bottom-right
+        };
+
+        for (int32 i = 0; i < 4; ++i)
+        {
+            Creature* totem = shaman->GetMap()->GetCreature(shaman->m_SummonSlot[SUMMON_SLOT_TOTEM_FIRE + i]);
+            if (totem && totem->IsTotem())
+            {
+                uint32 spellId = totem->GetUInt32Value(UNIT_FIELD_CREATEDBY);
+                SpellInfo const* spellInfo = sSpellMgr->GetSpellInfo(spellId);
+                if (!spellInfo)
+                    return;
+
+                // Apply the offset to the base position
+                float xOffset = offsets[i][0];
+                float yOffset = offsets[i][1];
+
+                Position newPos = basePos;
+                newPos.Relocate(basePos.GetPositionX() + xOffset, basePos.GetPositionY() + yOffset, basePos.GetPositionZ());
+
+                totem->NearTeleportTo(newPos.GetPositionX(), newPos.GetPositionY(), newPos.GetPositionZ(), totem->GetOrientation());
+            }
+        }
+    }
+    void Register() override
+    {
+        OnEffectHit += SpellEffectFn(spell_sha_totemic_projection::MoveTotems, EFFECT_1, SPELL_EFFECT_DUMMY);
+    }
 };
 
 // -51556 - Ancestral Awakening
@@ -1140,10 +1278,12 @@ class spell_sha_lava_lash : public SpellScript
         {
             int32 damage = GetEffectValue();
             int32 hitDamage = GetHitDamage();
+            if (caster->GetSpellHistory()->HasCooldown(SPELL_SHAMAN_FERAL_SPIRIT))
+                caster->GetSpellHistory()->ModifyCooldown(SPELL_SHAMAN_FERAL_SPIRIT, -10 * IN_MILLISECONDS);
             if (Item* offhand = caster->GetItemByPos(INVENTORY_SLOT_BAG_0, EQUIPMENT_SLOT_OFFHAND))
             {
-                // Damage is increased by 25% if your off-hand weapon is enchanted with Flametongue.
-                if (AuraEffect const* aurEff = caster->GetAuraEffect(SPELL_AURA_DUMMY, SPELLFAMILY_SHAMAN, 0x200000, 0, 0))
+                // Damage is increased by 25% if your off-hand weapon is enchanted with Windfury.
+                if (AuraEffect const* aurEff = caster->GetAuraEffect(SPELL_AURA_DUMMY, SPELLFAMILY_SHAMAN, 0x000100, 2, 0))
                     if (aurEff->GetBase()->GetCastItemGUID() == offhand->GetGUID())
                         AddPct(hitDamage, damage);
                 SetHitDamage(hitDamage);
@@ -1179,7 +1319,6 @@ class spell_sha_lightning_shield : public AuraScript
     {
         PreventDefaultAction();
         uint32 triggerSpell = sSpellMgr->GetSpellWithRank(SPELL_SHAMAN_LIGHTNING_SHIELD_R1, aurEff->GetSpellInfo()->GetRank());
-
         eventInfo.GetActionTarget()->CastSpell(eventInfo.GetActor(), triggerSpell, aurEff);
     }
 
@@ -1194,6 +1333,7 @@ class spell_sha_lightning_shield : public AuraScript
 class spell_sha_maelstrom_weapon : public AuraScript
 {
     PrepareAuraScript(spell_sha_maelstrom_weapon);
+
 
     bool Validate(SpellInfo const* /*spellInfo*/) override
     {
@@ -1214,12 +1354,12 @@ class spell_sha_maelstrom_weapon : public AuraScript
         if (!aurEff || !roll_chance_i(aurEff->GetAmount()))
             return;
 
-        caster->CastSpell(nullptr, SPELL_SHAMAN_MAELSTROM_POWER, aurEff);
     }
 
     void Register() override
     {
         OnEffectApply += AuraEffectApplyFn(spell_sha_maelstrom_weapon::HandleBonus, EFFECT_0, SPELL_AURA_ADD_PCT_MODIFIER, AURA_EFFECT_HANDLE_CHANGE_AMOUNT);
+        
     }
 };
 
@@ -1630,6 +1770,7 @@ class spell_sha_t3_6p_bonus : public AuraScript
                 spellId = SPELL_SHAMAN_TOTEMIC_POWER_SPELL_POWER;
                 break;
             case CLASS_HUNTER:
+            case CLASS_WITCH:
             case CLASS_ROGUE:
                 spellId = SPELL_SHAMAN_TOTEMIC_POWER_ATTACK_POWER;
                 break;
@@ -1958,4 +2099,5 @@ void AddSC_shaman_spell_scripts()
     RegisterSpellScript(spell_sha_t10_elemental_4p_bonus);
     RegisterSpellScript(spell_sha_t10_restoration_4p_bonus);
     RegisterSpellScript(spell_sha_windfury_weapon);
+    RegisterSpellScript(spell_sha_totemic_projection);
 }

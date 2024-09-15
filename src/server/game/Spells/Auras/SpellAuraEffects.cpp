@@ -376,6 +376,9 @@ pAuraEffectHandler AuraEffectHandler[TOTAL_AURAS]=
     &AuraEffect::HandlePreventResurrection,                       //314 SPELL_AURA_PREVENT_RESURRECTION todo
     &AuraEffect::HandleNoImmediateEffect,                         //315 SPELL_AURA_UNDERWATER_WALKING todo
     &AuraEffect::HandleNoImmediateEffect,                         //316 SPELL_AURA_PERIODIC_HASTE implemented in AuraEffect::CalculatePeriodic
+    &AuraEffect::HandleModRatingPct,
+    &AuraEffect::HandleAuraModRacePlayer,
+
 };
 
 AuraEffect::AuraEffect(Aura* base, SpellEffectInfo const& spellEfffectInfo, int32 const* baseAmount, Unit* caster):
@@ -418,7 +421,36 @@ void AuraEffect::GetApplicationList(Container& applicationContainer) const
             applicationContainer.push_back(appIter->second);
     }
 }
+void AuraEffect::HandleModRatingPct(AuraApplication const* aurApp, uint8 mode, bool apply) const
+{
+    if (!(mode & (AURA_EFFECT_HANDLE_CHANGE_AMOUNT_MASK | AURA_EFFECT_HANDLE_STAT)))
+        return;
 
+    Unit* target = aurApp->GetTarget();
+
+    if (target->GetTypeId() != TYPEID_PLAYER)
+        return;
+
+    // Just recalculate ratings
+    for (uint32 rating = 0; rating < MAX_COMBAT_RATING; ++rating)
+        if (GetMiscValue() & (1 << rating))
+            target->ToPlayer()->ApplyRatingMod(CombatRating(rating), (float)GetAmount(), apply);
+}
+void AuraEffect::HandleAuraModRacePlayer(AuraApplication const* aurApp, uint8 mode, bool apply) const
+{
+    if (!(mode & AURA_EFFECT_HANDLE_REAL))
+        return;
+
+    Unit* target = aurApp->GetTarget();
+
+
+    if (apply)
+    {
+        target->SetRace(GetMiscValue());
+        if (target->GetTypeId() == TYPEID_PLAYER)
+            target->RemoveUnitFlag(UNIT_FLAG_PLAYER_CONTROLLED);
+    }
+}
 int32 AuraEffect::CalculateAmount(Unit* caster)
 {
     // default amount calculation
@@ -465,6 +497,19 @@ int32 AuraEffect::CalculateAmount(Unit* caster)
     switch (GetAuraType())
     {
         // crowd control auras
+    case SPELL_AURA_SCHOOL_HEAL_ABSORB:
+        if (caster)
+        {
+            // Necrotic Strike
+
+            if (m_spellInfo->Id == 81309)
+            {
+                amount = 0.7f * caster->GetTotalAttackPowerValue(BASE_ATTACK);
+             //   caster->ApplyResilience(GetBase()->GetUnitOwner(), nullptr, &amount, nullptr, nullptr);
+                return amount;
+            }
+        }
+        break;
         case SPELL_AURA_MOD_CONFUSE:
         case SPELL_AURA_MOD_FEAR:
         case SPELL_AURA_MOD_STUN:
@@ -1148,6 +1193,12 @@ void AuraEffect::HandleShapeshiftBoosts(Unit* target, bool apply) const
         case FORM_GHOSTWOLF:
             spellId = 67116;
             break;
+        case FORM_FORESTWALKING:
+            spellId = 80735;
+            break;
+        case FORM_DEATHWALKING:
+            spellId = 80737;
+            break;
         case FORM_GHOUL:
         case FORM_AMBIENT:
         case FORM_STEALTH:
@@ -1211,7 +1262,6 @@ void AuraEffect::HandleShapeshiftBoosts(Unit* target, bool apply) const
                 if (spellInfo && spellInfo->Stances & (UI64LIT(1) << (GetMiscValue() - 1)))
                     target->CastSpell(target, 24932, this);
             }
-
             // Improved Barkskin - apply/remove armor bonus due to shapeshift
             if (plrTarget->HasSpell(63410) || plrTarget->HasSpell(63411))
             {
@@ -1219,7 +1269,6 @@ void AuraEffect::HandleShapeshiftBoosts(Unit* target, bool apply) const
                 if (GetMiscValue() == FORM_TRAVEL || GetMiscValue() == FORM_NONE) // "while in Travel Form or while not shapeshifted"
                     target->CastSpell(target, 66530, true);
             }
-
             // Heart of the Wild
             if (HotWSpellId)
             {   // hacky, but the only way as spell family is not SPELLFAMILY_DRUID
@@ -1671,6 +1720,7 @@ void AuraEffect::HandleAuraModShapeshift(AuraApplication const* aurApp, uint8 mo
     {
         case FORM_CAT:                                      // 0x01
         case FORM_GHOUL:                                    // 0x07
+        case FORM_FORESTWALKING:
             PowerType = POWER_ENERGY;
             break;
 
@@ -1708,6 +1758,7 @@ void AuraEffect::HandleAuraModShapeshift(AuraApplication const* aurApp, uint8 mo
         case FORM_STEALTH:                                  // 0x1E
         case FORM_MOONKIN:                                  // 0x1F
         case FORM_SPIRITOFREDEMPTION:                       // 0x20
+        case FORM_DEATHWALKING:
             break;
         default:
             TC_LOG_ERROR("spells.aura.effect", "Auras: Unknown Shapeshift Type: {}", GetMiscValue());
@@ -1788,6 +1839,33 @@ void AuraEffect::HandleAuraModShapeshift(AuraApplication const* aurApp, uint8 mo
                             target->SetPower(POWER_ENERGY, newEnergy);
                             break;
                         }
+                    }
+                    break;
+                }
+                case FORM_FORESTWALKING:
+                {
+                    // get furor proc chance
+                    int32 FurorChance = 0;
+                    if (AuraEffect const* dummy = target->GetDummyAuraEffect(SPELLFAMILY_WITCH, 238, 0))
+                        FurorChance = std::max(dummy->GetAmount(), 0);
+
+                    switch (GetMiscValue())
+                    {
+                    case FORM_FORESTWALKING:
+                    {
+                        CastSpellExtraArgs args(this);
+                        args.AddSpellMod(SPELLVALUE_BASE_POINT0, std::min<int32>(oldPower, FurorChance));
+                        target->SetPower(POWER_ENERGY, 0);
+                        target->CastSpell(target, 17099, args);
+                        break;
+                    }
+                    break;
+                    default:
+                    {
+                        uint32 newEnergy = std::min<int32>(target->GetPower(POWER_ENERGY), FurorChance);
+                        target->SetPower(POWER_ENERGY, newEnergy);
+                        break;
+                    }
                     }
                     break;
                 }
@@ -1941,7 +2019,201 @@ void AuraEffect::HandleAuraTransform(AuraApplication const* aurApp, uint8 mode, 
             {
                 uint8 gender = target->GetNativeGender();
                 switch (GetId())
+
                 {
+
+                case 83005:
+                {
+                    if (target->GetTypeId() != TYPEID_PLAYER)
+                        return;
+
+                    switch (target->GetClass())
+                    {
+                    case CLASS_WARRIOR:
+                        target->SetDisplayId(gender == GENDER_FEMALE ? 3730 : 3729);
+                        break;
+                    case CLASS_PALADIN:
+                        target->SetDisplayId(gender == GENDER_FEMALE ? 3730 : 3729);
+                        break;
+                    case CLASS_SHAMAN:
+                        target->SetDisplayId(gender == GENDER_FEMALE ? 3730 : 3729);
+                        break;
+
+                    case CLASS_ROGUE:                     
+                    case CLASS_DRUID:                    
+                    case CLASS_WITCH:                   
+                    case CLASS_HUNTER:
+                        target->SetDisplayId(gender == GENDER_FEMALE ? 4017 : 4016);
+                        break;
+
+                    case CLASS_MAGE:
+                        target->SetDisplayId(gender == GENDER_FEMALE ? 4019 : 4018);
+                        break;
+                    case CLASS_WARLOCK:
+                        target->SetDisplayId(gender == GENDER_FEMALE ? 4019 : 4018);
+                        break;
+                    case CLASS_PRIEST:
+                        target->SetDisplayId(gender == GENDER_FEMALE ? 4019 : 4018);
+                        break;
+
+                    default:
+                        break;
+                    }
+                    break;
+                }
+                case 83003:  //syndicate garment bag
+                {
+                    if (target->GetTypeId() != TYPEID_PLAYER)
+                        return;
+
+                    switch (target->GetClass())
+                    {
+                    case CLASS_WARRIOR:
+                    case CLASS_PALADIN:
+                    case CLASS_SHAMAN:
+                    case CLASS_WARDEN:
+                        target->SetDisplayId(gender == GENDER_FEMALE ? 3730 : 3729);
+                        break;
+
+                    case CLASS_ROGUE:
+                    case CLASS_DRUID:
+                    case CLASS_WITCH:
+                    case CLASS_HUNTER:
+                    case CLASS_BARD:
+                    case CLASS_MONK:
+                        target->SetDisplayId(gender == GENDER_FEMALE ? 4017 : 4016);
+                        break;
+
+                    case CLASS_MAGE:
+                    case CLASS_WARLOCK:
+                    case CLASS_PRIEST:
+                    case CLASS_NECROMANCER:
+                        target->SetDisplayId(gender == GENDER_FEMALE ? 4019 : 4018);
+                        break;
+
+                    default:
+                        target->SetDisplayId(target->GetNativeDisplayId());
+                        break;
+
+                    }
+                    break;
+                }
+
+                case 83002:  //scarlet garment bag
+                {
+                    if (target->GetTypeId() != TYPEID_PLAYER)
+                        return;
+
+                    switch (target->GetClass())
+                    {
+                    case CLASS_WARRIOR:
+                    case CLASS_PALADIN:
+                    case CLASS_SHAMAN:
+                    case CLASS_WARDEN:
+                        target->SetDisplayId(gender == GENDER_FEMALE ? 10326 : 10325);
+                        break;
+
+                    case CLASS_ROGUE:
+                    case CLASS_DRUID:
+                    case CLASS_WITCH:
+                    case CLASS_HUNTER:
+                    case CLASS_BARD:
+                    case CLASS_MONK:
+                        target->SetDisplayId(gender == GENDER_FEMALE ? 10352 : 10350);
+                        break;
+
+                    case CLASS_MAGE:
+                    case CLASS_WARLOCK:
+                    case CLASS_PRIEST:
+                    case CLASS_NECROMANCER:
+                        target->SetDisplayId(gender == GENDER_FEMALE ? 10320 : 10322);
+                        break;
+
+                    default:
+                        target->SetDisplayId(target->GetNativeDisplayId());
+                        break;
+
+                    }
+                    break;
+                }
+                case 83000:  //scarshield garment bag
+                {
+                    if (target->GetTypeId() != TYPEID_PLAYER)
+                        return;
+
+                    switch (target->GetClass())
+                    {
+                    case CLASS_WARRIOR:
+                    case CLASS_PALADIN:
+                    case CLASS_SHAMAN:
+                    case CLASS_WARDEN:
+                        target->SetDisplayId(gender == GENDER_FEMALE ? 9857 : 9629);
+                        break;
+
+                    case CLASS_ROGUE:
+                    case CLASS_DRUID:
+                    case CLASS_WITCH:
+                    case CLASS_HUNTER:
+                    case CLASS_BARD:
+                    case CLASS_MONK:
+                        target->SetDisplayId(gender == GENDER_FEMALE ? 9638 : 9859);
+                        break;
+
+                    case CLASS_MAGE:
+                    case CLASS_WARLOCK:
+                    case CLASS_NECROMANCER:
+                        target->SetDisplayId(gender == GENDER_FEMALE ? 9609 : 9865);
+                        break;
+                    case CLASS_PRIEST:
+                        target->SetDisplayId(gender == GENDER_FEMALE ? 9618 : 9863);
+                        break;
+
+                    default:
+                        target->SetDisplayId(target->GetNativeDisplayId());
+                        break;
+
+                    }
+                    break;
+                }
+                case 83001:  //defias garment bag
+                {
+                    if (target->GetTypeId() != TYPEID_PLAYER)
+                        return;
+
+                    switch (target->GetClass())
+                    {
+                    case CLASS_WARRIOR:
+                    case CLASS_PALADIN:
+                    case CLASS_SHAMAN:
+                    case CLASS_WARDEN:
+                        target->SetDisplayId(gender == GENDER_FEMALE ? 2443 : 2440);
+                        break;
+
+                    case CLASS_ROGUE:
+                    case CLASS_DRUID:
+                    case CLASS_WITCH:
+                    case CLASS_HUNTER:
+                    case CLASS_BARD:
+                    case CLASS_MONK:
+                        target->SetDisplayId(gender == GENDER_FEMALE ? 2315 : 2314);
+                        break;
+
+                    case CLASS_MAGE:
+                    case CLASS_WARLOCK:
+                    case CLASS_PRIEST:
+                    case CLASS_NECROMANCER:
+                        target->SetDisplayId(gender == GENDER_FEMALE ? 2319 : 2318);
+                        break;
+
+                    default:
+                        target->SetDisplayId(target->GetNativeDisplayId());
+                        break;
+
+                    }
+                    break;
+                }
+
+                
                     // Orb of Deception
                     case 16739:
                     {
@@ -2582,7 +2854,6 @@ void AuraEffect::HandleAuraModSkill(AuraApplication const* aurApp, uint8 mode, b
 {
     if (!(mode & (AURA_EFFECT_HANDLE_CHANGE_AMOUNT_MASK | AURA_EFFECT_HANDLE_SKILL)))
         return;
-
     Player* target = aurApp->GetTarget()->ToPlayer();
     if (!target)
         return;
@@ -4505,7 +4776,7 @@ void AuraEffect::HandleAuraDummy(AuraApplication const* aurApp, uint8 mode, bool
                             break;
                     }
                     break;
-                case SPELLFAMILY_DEATHKNIGHT:
+                case SPELLFAMILY_NECROMANCER:
                     // Summon Gargoyle (Dismiss Gargoyle at remove)
                     if (GetId() == 61777)
                         target->CastSpell(target, GetAmount(), true);
@@ -4668,7 +4939,7 @@ void AuraEffect::HandleAuraDummy(AuraApplication const* aurApp, uint8 mode, bool
             // if (!(mode & AURA_EFFECT_HANDLE_REAL))
             //    break;
             break;
-        case SPELLFAMILY_DEATHKNIGHT:
+        case SPELLFAMILY_NECROMANCER:
         {
             //if (!(mode & AURA_EFFECT_HANDLE_REAL))
             //    break;
@@ -4850,7 +5121,7 @@ void AuraEffect::HandleAuraConvertRune(AuraApplication const* aurApp, uint8 mode
     if (!player)
         return;
 
-    if (player->GetClass() != CLASS_DEATH_KNIGHT)
+    if (player->GetClass() != CLASS_NECROMANCER)
         return;
 
     uint32 runes = GetAmount();
@@ -5001,10 +5272,8 @@ void AuraEffect::HandleAuraSetVehicle(AuraApplication const* aurApp, uint8 mode,
     }
     else if (target->GetVehicleKit())
         target->RemoveVehicleKit();
-
     if (target->GetTypeId() != TYPEID_PLAYER)
         return;
-
     WorldPacket data(SMSG_PLAYER_VEHICLE_DATA, target->GetPackGUID().size()+4);
     data << target->GetPackGUID();
     data << uint32(apply ? vehicleId : 0);

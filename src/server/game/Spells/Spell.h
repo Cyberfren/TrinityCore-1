@@ -115,7 +115,6 @@ enum SpellRangeFlag
     SPELL_RANGE_MELEE               = 1,     //melee
     SPELL_RANGE_RANGED              = 2      //hunter range and ranged weapon
 };
-
 struct SpellValue
 {
     explicit  SpellValue(SpellInfo const* proto);
@@ -125,7 +124,6 @@ struct SpellValue
     uint8     AuraStackAmount;
     float     CriticalChance;
 };
-
 enum SpellState
 {
     SPELL_STATE_NULL      = 0,
@@ -152,7 +150,7 @@ class TC_GAME_API Spell
 {
     friend class SpellScript;
     public:
-
+     //   void EffectAttack();
         void EffectNULL();
         void EffectUnused();
         void EffectDistract();
@@ -277,6 +275,8 @@ class TC_GAME_API Spell
         void EffectRemoveAura();
         void EffectCastButtons();
         void EffectRechargeManaGem();
+        void EffectMonkBlock();
+        void EffectTempLearnSpell();
 
         typedef std::unordered_set<Aura*> UsedSpellMods;
 
@@ -475,7 +475,6 @@ class TC_GAME_API Spell
         std::pair<float, float> GetMinMaxRange(bool strict) const;
 
         WorldObject* const m_caster;
-
         SpellValue* const m_spellValue;
 
         ObjectGuid m_originalCasterGUID;                    // real source of cast (aura caster/etc), used for spell targets selection
@@ -506,7 +505,6 @@ class TC_GAME_API Spell
         uint64 m_delayStart;                                // time of spell delay start, filled by event handler, zero = just started
         uint64 m_delayMoment;                               // moment of next delay call, used internally
         bool m_immediateHandled;                            // were immediate actions handled? (used by delayed spells only)
-
         // These vars are used in both delayed spell system and modified immediate spell system
         bool m_referencedFromCurrentSpell;                  // mark as references to prevent deleted and access by dead pointers
         bool m_executedCurrently;                           // mark as executed to prevent deleted and access by dead pointers

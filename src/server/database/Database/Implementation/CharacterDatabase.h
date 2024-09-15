@@ -27,7 +27,8 @@ enum CharacterDatabaseStatements : uint32
         When updating more than one field, consider looking at the calling function
         name for a suiting suffix.
     */
-
+    CHAR_SEL_PET_NUMBER_BY_ENTRY,
+    CHAR_UPD_PET_MODEL_ID,
     CHAR_DEL_POOL_QUEST_SAVE,
     CHAR_INS_POOL_QUEST_SAVE,
     CHAR_DEL_NONEXISTENT_GUILD_BANK_ITEM,

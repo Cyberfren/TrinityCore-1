@@ -83,7 +83,15 @@ namespace ObjectAccessor
 
     // when using this, you must use the hashmapholder's lock
     TC_GAME_API HashMapHolder<Player>::MapType const& GetPlayers();
-
+    static Unit* GetUnitZ(WorldObject const&, uint64 guid);
+    template<class T> static T* GetObjectInMap(uint64 guid, Map* map, T* /*typeSpecifier*/)
+    {
+        ASSERT(map);
+        if (T* obj = GetObjectInWorld(guid, (T*)NULL))
+            if (obj->GetMap() == map)
+                return obj;
+        return NULL;
+    }
     template<class T>
     void AddObject(T* object)
     {

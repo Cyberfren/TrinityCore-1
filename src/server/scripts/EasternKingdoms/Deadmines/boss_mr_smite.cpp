@@ -33,7 +33,8 @@ enum Spells
 {
     SPELL_TRASH             = 3391,
     SPELL_SMITE_STOMP       = 6432,
-    SPELL_SMITE_SLAM        = 6435
+    SPELL_SMITE_SLAM        = 6435,
+    SPELL_SMITE_WHIRLWIND = 15578
 };
 
 enum Equips
@@ -71,6 +72,7 @@ public:
         {
             uiTrashTimer = urand(5000, 9000);
             uiSlamTimer = 9000;
+            uiWhirlTimer = 12000;
 
             uiHealth = 0;
 
@@ -84,7 +86,7 @@ public:
 
         uint32 uiTrashTimer;
         uint32 uiSlamTimer;
-
+        uint32 uiWhirlTimer;
         uint8 uiHealth;
 
         uint32 uiPhase;
@@ -109,7 +111,7 @@ public:
         bool bCheckChances()
         {
             uint32 uiChances = urand(0, 99);
-            if (uiChances <= 15)
+            if (uiChances <= 5)
                 return false;
             else
                 return true;
@@ -138,6 +140,13 @@ public:
                 }
                 else uiSlamTimer -= uiDiff;
 
+                if (uiWhirlTimer <= uiDiff)
+                {
+                    if (bCheckChances())
+                        DoCastVictim(SPELL_SMITE_WHIRLWIND);
+                    uiWhirlTimer = 11000;
+                }
+                else uiWhirlTimer -= uiDiff;
             }
 
             if ((uiHealth == 0 && !HealthAbovePct(66)) || (uiHealth == 1 && !HealthAbovePct(33)))

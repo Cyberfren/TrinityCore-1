@@ -19,7 +19,7 @@
 #define DBCENUMS_H
 
 #include "Define.h"
-#include <vector>
+#include <array>
 
 #pragma pack(push, 1)
 
@@ -431,27 +431,10 @@ enum SummonPropFlags
 
 #define MAX_TALENT_RANK 5
 #define MAX_PET_TALENT_RANK 3                               // use in calculations, expected <= MAX_TALENT_RANK
-#define MAX_TALENT_TABS 3
+#define MAX_TALENT_TABS 4
 
-class TaxiMask
-{
-public:
-    using value_type = uint32;
-
-    TaxiMask();
-
-    value_type& operator[](size_t i) { return _data[i]; }
-    value_type const& operator[](size_t i) const { return _data[i]; }
-
-    size_t size() const { return _data.size(); }
-    value_type const* data() const { return _data.data(); }
-
-    decltype(auto) begin() { return _data.begin(); }
-    decltype(auto) end() { return _data.end(); }
-
-private:
-    std::vector<value_type> _data;
-};
+static constexpr size_t TaxiMaskSize = 14;
+typedef std::array<uint32, TaxiMaskSize> TaxiMask;
 
 enum TotemCategoryType
 {

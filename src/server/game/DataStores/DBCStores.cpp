@@ -187,7 +187,6 @@ std::unordered_set<uint32> sPetTalentSpells;
 DBCStorage <TalentTabEntry> sTalentTabStore(TalentTabEntryfmt);
 
 // store absolute bit position for first rank for talent inspect
-static uint32 sTalentTabPages[MAX_CLASSES][3];
 
 DBCStorage <TaxiNodesEntry> sTaxiNodesStore(TaxiNodesEntryfmt);
 TaxiMask sTaxiNodesMask;

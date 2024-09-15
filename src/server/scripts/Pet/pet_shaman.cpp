@@ -28,7 +28,9 @@ enum ShamanSpells
     SPELL_SHAMAN_ANGEREDEARTH   = 36213,
     SPELL_SHAMAN_FIREBLAST      = 57984,
     SPELL_SHAMAN_FIRENOVA       = 12470,
-    SPELL_SHAMAN_FIRESHIELD     = 13376
+    SPELL_SHAMAN_FIRESHIELD     = 13376,
+    SPELL_SHAMAN_SLICE          = 81274,
+    SPELL_SHAMAN_ELELIGHTNING   = 81273
 };
 
 enum ShamanEvents
@@ -38,7 +40,9 @@ enum ShamanEvents
     // Fire Elemental
     EVENT_SHAMAN_FIRENOVA       = 1,
     EVENT_SHAMAN_FIRESHIELD     = 2,
-    EVENT_SHAMAN_FIREBLAST      = 3
+    EVENT_SHAMAN_FIREBLAST      = 3,
+    EVENT_SHAMAN_ELELIGHTNING   = 1,
+    EVENT_SHAMAN_SLICE          = 2
 };
 
 struct npc_pet_shaman_earth_elemental : public ScriptedAI
@@ -121,8 +125,54 @@ private:
     EventMap _events;
 };
 
+struct npc_pet_shaman_air_elemental : public ScriptedAI
+{
+    npc_pet_shaman_air_elemental(Creature* creature) : ScriptedAI(creature) { }
+
+    void Reset() override
+    {
+        _events.Reset();
+        _events.ScheduleEvent(EVENT_SHAMAN_ELELIGHTNING, 5s, 20s);
+        _events.ScheduleEvent(EVENT_SHAMAN_SLICE, 5s, 20s);
+    }
+
+    void UpdateAI(uint32 diff) override
+    {
+        if (!UpdateVictim())
+            return;
+
+        if (me->HasUnitState(UNIT_STATE_CASTING))
+            return;
+
+        _events.Update(diff);
+
+        while (uint32 eventId = _events.ExecuteEvent())
+        {
+            switch (eventId)
+            {
+            case EVENT_SHAMAN_ELELIGHTNING:
+                DoCastVictim(SPELL_SHAMAN_ELELIGHTNING);
+                _events.ScheduleEvent(EVENT_SHAMAN_ELELIGHTNING, 5s, 20s);
+                break;
+            case EVENT_SHAMAN_SLICE:
+                DoCastVictim(SPELL_SHAMAN_SLICE);
+                _events.ScheduleEvent(EVENT_SHAMAN_SLICE, 5s, 20s);
+                break;
+            default:
+                break;
+            }
+        }
+
+        DoMeleeAttackIfReady();
+    }
+
+private:
+    EventMap _events;
+};
+
 void AddSC_shaman_pet_scripts()
 {
     RegisterCreatureAI(npc_pet_shaman_earth_elemental);
     RegisterCreatureAI(npc_pet_shaman_fire_elemental);
+    RegisterCreatureAI(npc_pet_shaman_air_elemental);
 }

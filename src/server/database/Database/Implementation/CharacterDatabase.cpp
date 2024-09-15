@@ -23,6 +23,8 @@ void CharacterDatabaseConnection::DoPrepareStatements()
     if (!m_reconnecting)
         m_stmts.resize(MAX_CHARACTERDATABASE_STATEMENTS);
 
+    PrepareStatement(CHAR_SEL_PET_NUMBER_BY_ENTRY, "SELECT id FROM character_pet WHERE owner = ? AND entry = ?", CONNECTION_ASYNC);
+    PrepareStatement(CHAR_UPD_PET_MODEL_ID, "UPDATE character_pet SET modelID = ? WHERE id = ?", CONNECTION_ASYNC);
     PrepareStatement(CHAR_DEL_POOL_QUEST_SAVE, "DELETE FROM pool_quest_save WHERE pool_id = ?", CONNECTION_ASYNC);
     PrepareStatement(CHAR_INS_POOL_QUEST_SAVE, "INSERT INTO pool_quest_save (pool_id, quest_id) VALUES (?, ?)", CONNECTION_ASYNC);
     PrepareStatement(CHAR_DEL_NONEXISTENT_GUILD_BANK_ITEM, "DELETE FROM guild_bank_item WHERE guildid = ? AND TabId = ? AND SlotId = ?", CONNECTION_ASYNC);

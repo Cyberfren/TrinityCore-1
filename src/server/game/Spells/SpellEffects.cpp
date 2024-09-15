@@ -14,7 +14,7 @@
  * You should have received a copy of the GNU General Public License along
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
-
+#include "SpellScript.h"
 #include "Spell.h"
 #include "AccountMgr.h"
 #include "Battleground.h"
@@ -228,6 +228,8 @@ SpellEffectHandlerFn SpellEffectHandlers[TOTAL_SPELL_EFFECTS] =
     &Spell::EffectActivateSpec,                             //162 SPELL_EFFECT_TALENT_SPEC_SELECT       activate primary/secondary spec
     &Spell::EffectNULL,                                     //163 unused
     &Spell::EffectRemoveAura,                               //164 SPELL_EFFECT_REMOVE_AURA
+    &Spell::EffectMonkBlock,                               //164 SPELL_EFFECT_REMOVE_AURA
+    &Spell::EffectTempLearnSpell,
 };
 
 void Spell::EffectNULL()
@@ -237,9 +239,8 @@ void Spell::EffectNULL()
 
 void Spell::EffectUnused()
 {
-    // NOT USED BY ANY SPELL OR USELESS OR IMPLEMENTED IN DIFFERENT WAY IN TRINITY
-}
 
+}
 void Spell::EffectResurrectNew()
 {
     if (effectHandleMode != SPELL_EFFECT_HANDLE_HIT_TARGET)
@@ -348,6 +349,62 @@ void Spell::EffectSchoolDMG()
                 }
 
                 break;
+            }
+            case SPELLFAMILY_WITCH:
+            {
+                if (!unitCaster)
+                    break;
+
+                // Soul Crush remove 3 Stacks of Soul Lash
+                if (m_spellInfo->TargetAuraState == AURA_STATE_SOUL_CRUSH)
+                {
+                    AuraEffect const* aura = nullptr;
+
+                    Unit::AuraEffectList const& mStacking = unitTarget->GetAuraEffectsByType(SPELL_AURA_MOD_DAMAGE_FROM_CASTER);
+                    for (Unit::AuraEffectList::const_iterator i = mStacking.begin(); i != mStacking.end(); ++i)
+                    {
+                        // for caster applied auras only
+                        if ((*i)->GetSpellInfo()->SpellFamilyName != SPELLFAMILY_WITCH ||
+                            (*i)->GetCasterGUID() != unitCaster->GetGUID())
+                            continue;
+
+                        // Soul Slash
+                        if ((*i)->GetSpellInfo()->SpellFamilyFlags[2] & 0x40)
+                        {
+                            aura = *i;  // it selected always if exist
+                            break;
+                        }
+                    }
+
+                    // found Soul Slash
+                    if (aura)
+                    {
+                        if (Aura* baseAura = aura->GetBase())
+                        {
+                            if (baseAura->GetStackAmount() >= 3)
+                            {
+                                // Reduce the stack count by 3
+                                int32 newStackCount = baseAura->GetStackAmount() - 3;
+                                if (newStackCount > 0)
+                                {
+                                    baseAura->SetStackAmount(newStackCount);
+                                }
+                                else
+                                {
+                                    unitTarget->RemoveAurasDueToSpell(aura->GetId(), unitCaster->GetGUID());
+                                }
+                            }
+                        }
+
+                        // Glyph of Conflagrate
+                        /// if (!unitCaster->HasAura(56235))
+                        //     unitTarget->RemoveAurasDueToSpell(aura->GetId(), unitCaster->GetGUID());
+
+                        break;
+                    }
+                }
+                break;        
+
             }
             case SPELLFAMILY_WARRIOR:
             {
@@ -664,7 +721,7 @@ void Spell::EffectSchoolDMG()
                 }
                 break;
             }
-            case SPELLFAMILY_DEATHKNIGHT:
+            case SPELLFAMILY_NECROMANCER:
             {
                 if (!unitCaster)
                     break;
@@ -672,7 +729,7 @@ void Spell::EffectSchoolDMG()
                 // Blood Boil - bonus for diseased targets
                 if (m_spellInfo->SpellFamilyFlags[0] & 0x00040000)
                 {
-                    if (unitTarget->GetAuraEffect(SPELL_AURA_PERIODIC_DAMAGE, SPELLFAMILY_DEATHKNIGHT, 0, 0, 0x00000002, unitCaster->GetGUID()))
+                    if (unitTarget->GetAuraEffect(SPELL_AURA_PERIODIC_DAMAGE, SPELLFAMILY_NECROMANCER, 0, 0, 0x00000002, unitCaster->GetGUID()))
                     {
                         damage += m_damage / 2;
                         damage += int32(unitCaster->GetTotalAttackPowerValue(BASE_ATTACK) * 0.035f);
@@ -1293,7 +1350,7 @@ void Spell::EffectHeal()
             unitTarget->RemoveAura(targetAura->GetId(), targetAura->GetCasterGUID());
     }
     // Death Pact - return pct of max health to caster
-    else if (m_spellInfo->SpellFamilyName == SPELLFAMILY_DEATHKNIGHT && m_spellInfo->SpellFamilyFlags[0] & 0x00080000)
+    else if (m_spellInfo->SpellFamilyName == SPELLFAMILY_NECROMANCER && m_spellInfo->SpellFamilyFlags[0] & 0x00080000)
         addhealth = unitCaster->SpellHealingBonusDone(unitTarget, m_spellInfo, int32(unitCaster->CountPctFromMaxHealth(damage)), HEAL, *effectInfo, { });
     else
         addhealth = unitCaster->SpellHealingBonusDone(unitTarget, m_spellInfo, addhealth, HEAL, *effectInfo, { });
@@ -1401,21 +1458,32 @@ void Spell::DoCreateItem(uint32 itemId)
     uint32 bgType = 0;
     switch (m_spellInfo->Id)
     {
-        case SPELL_AV_MARK_WINNER:
-        case SPELL_AV_MARK_LOSER:
-            bgType = BATTLEGROUND_AV;
-            break;
-        case SPELL_WS_MARK_WINNER:
-        case SPELL_WS_MARK_LOSER:
-            bgType = BATTLEGROUND_WS;
-            break;
-        case SPELL_AB_MARK_WINNER:
-        case SPELL_AB_MARK_LOSER:
-            bgType = BATTLEGROUND_AB;
-            break;
-        default:
-            break;
-    }
+    case SPELL_AV_MARK_WINNER:
+    case SPELL_AV_MARK_LOSER:
+        bgType = BATTLEGROUND_AV;
+        break;
+    case SPELL_BFG_MARK_WINNER:
+
+    case SPELL_BFG_MARK_LOSER:
+
+        bgType = BATTLEGROUND_BFG;
+
+        break;
+    case SPELL_TP_MARK_WINNER:
+    case SPELL_TP_MARK_LOSER:
+        bgType = BATTLEGROUND_TP;
+        break;
+    case SPELL_WS_MARK_WINNER:
+    case SPELL_WS_MARK_LOSER:
+        bgType = BATTLEGROUND_WS;
+        break;
+    case SPELL_AB_MARK_WINNER:
+    case SPELL_AB_MARK_LOSER:
+        bgType = BATTLEGROUND_AB;
+        break;
+    default:
+        break;
+  }
 
     uint32 num_to_add = damage;
 
@@ -2230,7 +2298,29 @@ void Spell::EffectSummonType()
         ExecuteLogEffectSummonObject(effectInfo->EffectIndex, summon);
     }
 }
+void Spell::EffectTempLearnSpell()
+{
+    if (effectHandleMode != SPELL_EFFECT_HANDLE_HIT_TARGET)
+        return;
 
+    if (!unitTarget)
+        return;
+
+    if (unitTarget->GetTypeId() != TYPEID_PLAYER)
+    {
+        return;
+    }
+
+    Player* player = unitTarget->ToPlayer();
+
+    uint32 spellToLearn = (m_spellInfo->Id == 483 || m_spellInfo->Id == 55884) ? damage : effectInfo->TriggerSpell;
+    player->TempLearnSpell(spellToLearn, false);
+
+    TC_LOG_DEBUG("spells", "Spell: Player {} has learned spell {} from Npc {}", player->GetGUID().ToString(), spellToLearn, m_caster->GetGUID().ToString());
+
+    // Apply the custom aura
+    player->CastSpell(player, 90900, true); // 90900 should be the ID of the custom aura that triggers the unlearning
+}
 void Spell::EffectLearnSpell()
 {
     if (effectHandleMode != SPELL_EFFECT_HANDLE_HIT_TARGET)
@@ -3051,6 +3141,7 @@ void Spell::EffectWeaponDmg()
             }
             break;
         }
+
         case SPELLFAMILY_ROGUE:
         {
             // Fan of Knives, Hemorrhage, Ghostly Strike
@@ -3100,7 +3191,21 @@ void Spell::EffectWeaponDmg()
             {
                 spell_bonus += int32(0.08f * unitCaster->GetTotalAttackPowerValue(BASE_ATTACK));
                 spell_bonus += int32(0.13f * unitCaster->SpellBaseDamageBonusDone(m_spellInfo->GetSchoolMask()));
+
             }
+            else if (m_spellInfo->Id == 80001)  //holy strike
+                if (unitCaster->GetTypeId() == TYPEID_PLAYER)
+                {
+                    if (Item* item = unitCaster->ToPlayer()->GetWeaponForAttack(m_attackType, true))
+                    {
+                        if (item->GetTemplate()->InventoryType == INVTYPE_WEAPONMAINHAND ||
+                            item->GetTemplate()->InventoryType == INVTYPE_WEAPON)
+                        {
+                            totalDamagePercentMod *= 1.5f;
+                        }
+
+                    }
+                }
             break;
         }
         case SPELLFAMILY_SHAMAN:
@@ -3109,6 +3214,22 @@ void Spell::EffectWeaponDmg()
             // Stormstrike
             if (AuraEffect* aurEff = unitCaster->IsScriptOverriden(m_spellInfo, 5634))
                 unitCaster->CastSpell(nullptr, 38430, aurEff);
+
+
+            else if (m_spellInfo->Id == 80008)  //primal strike
+            {
+                if (unitCaster->GetTypeId() == TYPEID_PLAYER)
+                {
+                    if (Item* item = unitCaster->ToPlayer()->GetWeaponForAttack(m_attackType, true))
+                    {
+                        if (item->GetTemplate()->InventoryType == INVTYPE_WEAPONMAINHAND ||
+                            item->GetTemplate()->InventoryType == INVTYPE_WEAPON)
+                        {
+                            totalDamagePercentMod *= 1.5f;
+                        }
+                    }
+                }
+            }
             break;
         }
         case SPELLFAMILY_DRUID:
@@ -3130,9 +3251,26 @@ void Spell::EffectWeaponDmg()
             // Kill Shot - bonus damage from Ranged Attack Power
             if (m_spellInfo->SpellFamilyFlags[1] & 0x800000)
                 spell_bonus += int32(0.4f * unitCaster->GetTotalAttackPowerValue(RANGED_ATTACK));
+
+            else if (m_spellInfo->Id == 80302 || m_spellInfo->Id == 80286 || m_spellInfo->Id == 81021 || m_spellInfo->Id == 80303 || m_spellInfo->Id == 81021 || m_spellInfo->Id == 80090 || m_spellInfo->Id == 81022)  //primal cleave
+            {
+                if (unitCaster->GetTypeId() == TYPEID_PLAYER)
+                {
+                    if (Item* item = unitCaster->ToPlayer()->GetWeaponForAttack(m_attackType, true))
+                    {
+                        if (item->GetTemplate()->InventoryType == INVTYPE_WEAPONMAINHAND ||
+                            item->GetTemplate()->InventoryType == INVTYPE_WEAPON)
+                        {
+                            totalDamagePercentMod *= 1.5f;
+                        }
+                    }
+                }
+            }
+
+
             break;
         }
-        case SPELLFAMILY_DEATHKNIGHT:
+        case SPELLFAMILY_NECROMANCER:
         {
             // Plague Strike
             if (m_spellInfo->SpellFamilyFlags[0] & 0x1)
@@ -3154,7 +3292,7 @@ void Spell::EffectWeaponDmg()
                 // Glyph of Blood Strike
                 if (unitCaster->GetAuraEffect(59332, EFFECT_0))
                     if (unitTarget->HasAuraType(SPELL_AURA_MOD_DECREASE_SPEED))
-                       AddPct(totalDamagePercentMod, 20);
+                        AddPct(totalDamagePercentMod, 20);
                 break;
             }
             // Death Strike
@@ -3171,7 +3309,7 @@ void Spell::EffectWeaponDmg()
             {
                 bool consumeDiseases = true;
                 // Annihilation
-                if (AuraEffect const* aurEff = unitCaster->GetDummyAuraEffect(SPELLFAMILY_DEATHKNIGHT, 2710, EFFECT_0))
+                if (AuraEffect const* aurEff = unitCaster->GetDummyAuraEffect(SPELLFAMILY_NECROMANCER, 2710, EFFECT_0))
                     // Do not consume diseases if roll sucesses
                     if (roll_chance_i(aurEff->GetAmount()))
                         consumeDiseases = false;
@@ -4080,6 +4218,16 @@ void Spell::EffectBlock()
 
     if (m_caster->GetTypeId() == TYPEID_PLAYER)
         m_caster->ToPlayer()->SetCanBlock(true);
+
+}
+void Spell::EffectMonkBlock()
+{
+    if (effectHandleMode != SPELL_EFFECT_HANDLE_HIT)
+        return;
+
+    if (m_caster->GetTypeId() == TYPEID_PLAYER)
+        m_caster->ToPlayer()->SetCanBlock(true);
+
 }
 
 void Spell::EffectLeap()
@@ -5072,7 +5220,7 @@ void Spell::EffectActivateRune()
 
     Player* player = m_caster->ToPlayer();
 
-    if (player->GetClass() != CLASS_DEATH_KNIGHT)
+    if (player->GetClass() != CLASS_NECROMANCER)
         return;
 
     // needed later

@@ -30,12 +30,11 @@ EndScriptData */
 #include "Map.h"
 #include "Random.h"
 
-Position const LorgusPosition[4] =
+Position const LorgusPosition[2] =
 {
-    { -458.500610f, -38.343079f, -33.474445f, 0.0f },
-    { -469.423615f, -88.400513f, -39.265102f, 0.0f },
-    { -622.354980f, -10.350100f, -22.777000f, 0.0f },
-    { -759.640564f,  16.658913f, -29.159529f, 0.0f }
+
+    { -636.418701f, -24.717627f, -19.032524f, 5.9f },
+    { -633.988892f, -19.672201f, -18.873167f, 5.8f }
 };
 
 Position const SpawnsLocation[] =
@@ -82,7 +81,7 @@ public:
                     twilightLordKelrisGUID = creature->GetGUID();
                     break;
                 case NPC_LORGUS_JETT:
-                    creature->SetHomePosition(LorgusPosition[urand(0, 3)]);
+                    creature->SetHomePosition(LorgusPosition[urand(0, 1)]);
                     break;
             }
         }

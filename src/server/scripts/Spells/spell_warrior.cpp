@@ -20,7 +20,7 @@
  * Ordered alphabetically using scriptname.
  * Scriptnames of files in this file should be prefixed with "spell_warr_".
  */
-
+#include "DBCStores.h"
 #include "ScriptMgr.h"
 #include "ItemTemplate.h"
 #include "Optional.h"
@@ -30,9 +30,15 @@
 #include "SpellHistory.h"
 #include "SpellMgr.h"
 #include "SpellScript.h"
+#include "ObjectMgr.h"
+#include "Item.h"
+
 
 enum WarriorSpells
 {
+    SPELL_WARRIOR_CS                                = 89004,
+    SPELL_WARRIOR_CS_DEBUFF                         = 89003,
+    SPELL_WARRIOR_CS_WAR_BUFF                       = 89002,
     SPELL_WARRIOR_BLADESTORM_PERIODIC_WHIRLWIND     = 50622,
     SPELL_WARRIOR_BLOODTHIRST                       = 23885,
     SPELL_WARRIOR_BLOODTHIRST_DAMAGE                = 23881,
@@ -473,6 +479,83 @@ class spell_warr_intervene : public SpellScript
     }
 };
 
+
+class spell_warr_single_minded_fury : public SpellScriptLoader
+{
+public:
+    spell_warr_single_minded_fury() : SpellScriptLoader("spell_warr_single_minded_fury") { }
+
+    class spell_warr_single_minded_fury_AuraScript : public AuraScript
+    {
+        PrepareAuraScript(spell_warr_single_minded_fury_AuraScript);
+
+        // Calculate the damage for the main hand weapon
+        void CalculateFirstEffect(AuraEffect const* /*aurEff*/, int32& amount, bool& /*canBeRecalculated*/)
+        {
+            if (!GetCaster())
+                return;
+
+            if (Player* player = GetCaster()->ToPlayer())
+            {
+                Item* mainHand = player->GetItemByPos(INVENTORY_SLOT_BAG_0, EQUIPMENT_SLOT_MAINHAND);
+                Item* offHand = player->GetItemByPos(INVENTORY_SLOT_BAG_0, EQUIPMENT_SLOT_OFFHAND);
+
+                // If both mainhand and offhand exist
+                if (mainHand && offHand)
+                {
+                    if (mainHand->GetTemplate()->InventoryType == INVTYPE_2HWEAPON || offHand->GetTemplate()->InventoryType == INVTYPE_2HWEAPON)
+                        amount = 0;  // Disable if using a two-handed weapon
+                }
+                else
+                    amount = 0;  // No mainhand or offhand
+            }
+        }
+
+        // Calculate the damage for the off-hand weapon
+        void CalculateSecondEffect(AuraEffect const* /*aurEff*/, int32& amount, bool& /*canBeRecalculated*/)
+        {
+            if (!GetCaster())
+                return;
+
+            if (Player* player = GetCaster()->ToPlayer())
+            {
+                Item* mainHand = player->GetItemByPos(INVENTORY_SLOT_BAG_0, EQUIPMENT_SLOT_MAINHAND);
+                Item* offHand = player->GetItemByPos(INVENTORY_SLOT_BAG_0, EQUIPMENT_SLOT_OFFHAND);
+
+                // Reference a known spell ID for Crazed Berserker aura in 3.3.5
+          
+                const SpellEntry* spellInfo = sSpellStore.LookupEntry(89000); // Use sSpellStore.LookupEntry() to get spell info
+
+                if (mainHand && offHand)
+                {
+                    if (mainHand->GetTemplate()->InventoryType == INVTYPE_2HWEAPON || offHand->GetTemplate()->InventoryType == INVTYPE_2HWEAPON)
+                        amount = 0;  // Disable if using a two-handed weapon
+                    else if (player->HasAura(89000) && spellInfo != nullptr)
+                    {
+                        if (offHand->GetTemplate()->InventoryType == INVTYPE_WEAPON ||
+                            offHand->GetTemplate()->InventoryType == INVTYPE_WEAPONMAINHAND ||
+                            offHand->GetTemplate()->InventoryType == INVTYPE_WEAPONOFFHAND)
+                        {
+                            amount = (100 + spellInfo->EffectBasePoints[EFFECT_1]) * (100 + amount) / 100 - 100;
+                        }
+                    }
+                }
+                else
+                    amount = 0;  // No mainhand or offhand
+            }
+        }
+
+        // Register the effects
+        void Register() override
+        {
+            DoEffectCalcAmount += AuraEffectCalcAmountFn(spell_warr_single_minded_fury_AuraScript::CalculateFirstEffect, EFFECT_0, SPELL_AURA_MOD_DAMAGE_PERCENT_DONE);
+            DoEffectCalcAmount += AuraEffectCalcAmountFn(spell_warr_single_minded_fury_AuraScript::CalculateSecondEffect, EFFECT_1, SPELL_AURA_MOD_OFFHAND_DAMAGE_PCT);
+        }
+   
+    };
+    
+};
+
 // 5246 - Intimidating Shout
 class spell_warr_intimidating_shout : public SpellScript
 {
@@ -699,6 +782,33 @@ class spell_warr_shattering_throw : public SpellScript
 };
 
 // -1464 - Slam
+/*
+class spell_warr_slam : public SpellScript
+{
+    PrepareSpellScript(spell_warr_slam);
+
+    bool Validate(SpellInfo const* ) override
+    {
+        return ValidateSpellInfo({ SPELL_WARRIOR_SLAM });
+    }
+
+    void HandleDummy(SpellEffIndex )
+    {
+        if (!GetHitUnit())
+            return;
+        CastSpellExtraArgs args(TRIGGERED_FULL_MASK);
+        args.AddSpellBP0(GetEffectValue());
+        GetCaster()->CastSpell(GetHitUnit(), SPELL_WARRIOR_SLAM, args);
+    }
+
+    void Register() override
+    {
+        OnEffectHitTarget += SpellEffectFn(spell_warr_slam::HandleDummy, EFFECT_0, SPELL_EFFECT_DUMMY);
+    }
+};*/
+
+
+
 class spell_warr_slam : public SpellScript
 {
     PrepareSpellScript(spell_warr_slam);
@@ -712,9 +822,27 @@ class spell_warr_slam : public SpellScript
     {
         if (!GetHitUnit())
             return;
+
+        // Cast main hand Slam
         CastSpellExtraArgs args(TRIGGERED_FULL_MASK);
         args.AddSpellBP0(GetEffectValue());
         GetCaster()->CastSpell(GetHitUnit(), SPELL_WARRIOR_SLAM, args);
+
+        // Check for Single-Minded Fury aura (ID 89000) and cast off-hand attack if present
+        if (Player* player = GetCaster()->ToPlayer())
+        {
+            if (player->HasAura(89000))  // Check if the player has Single-Minded Fury
+            {
+                Item* offHand = player->GetItemByPos(INVENTORY_SLOT_BAG_0, EQUIPMENT_SLOT_OFFHAND);
+
+                // Check if the player has an off-hand weapon
+                if (offHand && offHand->GetTemplate()->InventoryType == INVTYPE_WEAPONOFFHAND)
+                {
+                    // Cast an off-hand attack
+                    player->CastSpell(GetHitUnit(), 89001, true); // 674 is the spell ID for off-hand attacks
+                }
+            }
+        }
     }
 
     void Register() override
@@ -915,6 +1043,7 @@ class spell_warr_vigilance_trigger : public SpellScript
 
 void AddSC_warrior_spell_scripts()
 {
+    RegisterSpellScript(spell_warr_single_minded_fury);
     RegisterSpellScript(spell_warr_bloodthirst);
     RegisterSpellScript(spell_warr_bloodthirst_heal);
     RegisterSpellScript(spell_warr_charge);
@@ -943,4 +1072,5 @@ void AddSC_warrior_spell_scripts()
     RegisterSpellScript(spell_warr_vigilance);
     RegisterSpellScript(spell_warr_vigilance_redirect_threat);
     RegisterSpellScript(spell_warr_vigilance_trigger);
+
 }

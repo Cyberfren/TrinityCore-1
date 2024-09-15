@@ -66,7 +66,8 @@ class TC_GAME_API Pet : public Guardian
         void FillPetInfo(PetStable::PetInfo* petInfo) const;
         void Remove(PetSaveMode mode, bool returnreagent = false);
         static void DeleteFromDB(ObjectGuid::LowType guidlow);
-
+        void RandomizeWarlockPetDisplay(Player* owner, uint32 petEntry, Pet* pet);
+        void UpdatePetModelID(Player* owner, uint32 petEntry, uint32 newModelID);
         void setDeathState(DeathState s) override;                   // overwrite virtual Creature::setDeathState and Unit::setDeathState
         void Update(uint32 diff) override;                           // overwrite virtual Creature::Update and Unit::Update
 

@@ -1959,7 +1959,6 @@ class spell_pal_t8_2p_bonus : public AuraScript
         OnEffectProc += AuraEffectProcFn(spell_pal_t8_2p_bonus::HandleProc, EFFECT_0, SPELL_AURA_DUMMY);
     }
 };
-
 void AddSC_paladin_spell_scripts()
 {
     RegisterSpellScript(spell_pal_ardent_defender);
