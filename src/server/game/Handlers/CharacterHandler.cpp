@@ -389,7 +389,7 @@ void WorldSession::HandleCharCreateOpcode(WorldPacket& recvData)
         return;
     }
 
-    if (createInfo->Class == CLASS_DEATH_KNIGHT && !HasPermission(rbac::RBAC_PERM_SKIP_CHECK_CHARACTER_CREATION_DEATH_KNIGHT))
+   /* if (createInfo->Class == CLASS_NECROMANCER && !HasPermission(rbac::RBAC_PERM_SKIP_CHECK_CHARACTER_CREATION_DEATH_KNIGHT))
     {
         // speedup check for death knight class disabled case
         if (sWorld->getIntConfig(CONFIG_DEATH_KNIGHTS_PER_REALM) == 0)
@@ -404,7 +404,7 @@ void WorldSession::HandleCharCreateOpcode(WorldPacket& recvData)
             SendCharCreate(CHAR_CREATE_LEVEL_REQUIREMENT);
             return;
         }
-    }
+    }*/
 
     CharacterDatabasePreparedStatement* stmt = CharacterDatabase.GetPreparedStatement(CHAR_SEL_CHECK_NAME);
     stmt->setString(0, createInfo->Name);
@@ -461,24 +461,24 @@ void WorldSession::HandleCharCreateOpcode(WorldPacket& recvData)
         std::function<void(PreparedQueryResult)> finalizeCharacterCreation = [this, createInfo](PreparedQueryResult result)
         {
             bool haveSameRace = false;
-            uint32 deathKnightReqLevel = sWorld->getIntConfig(CONFIG_CHARACTER_CREATING_MIN_LEVEL_FOR_DEATH_KNIGHT);
-            bool hasDeathKnightReqLevel = (deathKnightReqLevel == 0);
+          //  uint32 deathKnightReqLevel = sWorld->getIntConfig(CONFIG_CHARACTER_CREATING_MIN_LEVEL_FOR_DEATH_KNIGHT);
+         //   bool hasDeathKnightReqLevel = (deathKnightReqLevel == 0);
             bool allowTwoSideAccounts = !sWorld->IsPvPRealm() || HasPermission(rbac::RBAC_PERM_TWO_SIDE_CHARACTER_CREATION);
             uint32 skipCinematics = sWorld->getIntConfig(CONFIG_SKIP_CINEMATICS);
-            bool checkDeathKnightReqs = createInfo->Class == CLASS_DEATH_KNIGHT && !HasPermission(rbac::RBAC_PERM_SKIP_CHECK_CHARACTER_CREATION_DEATH_KNIGHT);
+        //    bool checkDeathKnightReqs = createInfo->Class == CLASS_NECROMANCER && !HasPermission(rbac::RBAC_PERM_SKIP_CHECK_CHARACTER_CREATION_DEATH_KNIGHT);
 
             if (result)
             {
                 uint32 team = Player::TeamForRace(createInfo->Race);
-                uint32 freeDeathKnightSlots = sWorld->getIntConfig(CONFIG_DEATH_KNIGHTS_PER_REALM);
+              //  uint32 freeDeathKnightSlots = sWorld->getIntConfig(CONFIG_DEATH_KNIGHTS_PER_REALM);
 
                 Field* field = result->Fetch();
                 uint8 accRace = field[1].GetUInt8();
 
-                if (checkDeathKnightReqs)
+                /*if (checkDeathKnightReqs)
                 {
                     uint8 accClass = field[2].GetUInt8();
-                    if (accClass == CLASS_DEATH_KNIGHT)
+                    if (accClass == CLASS_NECROMANCER)
                     {
                         if (freeDeathKnightSlots > 0)
                             --freeDeathKnightSlots;
@@ -496,7 +496,7 @@ void WorldSession::HandleCharCreateOpcode(WorldPacket& recvData)
                         if (accLevel >= deathKnightReqLevel)
                             hasDeathKnightReqLevel = true;
                     }
-                }
+                }*/
 
                 // need to check team only for first character
                 /// @todo what to if account already has characters of both races?
@@ -515,7 +515,7 @@ void WorldSession::HandleCharCreateOpcode(WorldPacket& recvData)
 
                 // search same race for cinematic or same class if need
                 /// @todo check if cinematic already shown? (already logged in?; cinematic field)
-                while ((skipCinematics == 1 && !haveSameRace) || createInfo->Class == CLASS_DEATH_KNIGHT)
+                while ((skipCinematics == 1 && !haveSameRace) || createInfo->Class == CLASS_NECROMANCER)
                 {
                     if (!result->NextRow())
                         break;
@@ -526,10 +526,10 @@ void WorldSession::HandleCharCreateOpcode(WorldPacket& recvData)
                     if (!haveSameRace)
                         haveSameRace = createInfo->Race == accRace;
 
-                    if (checkDeathKnightReqs)
+                   /* if (checkDeathKnightReqs)
                     {
                         uint8 acc_class = field[2].GetUInt8();
-                        if (acc_class == CLASS_DEATH_KNIGHT)
+                        if (acc_class == CLASS_NECROMANCER)
                         {
                             if (freeDeathKnightSlots > 0)
                                 --freeDeathKnightSlots;
@@ -547,15 +547,15 @@ void WorldSession::HandleCharCreateOpcode(WorldPacket& recvData)
                             if (acc_level >= deathKnightReqLevel)
                                 hasDeathKnightReqLevel = true;
                         }
-                    }
+                    }*/
                 }
             }
 
-            if (checkDeathKnightReqs && !hasDeathKnightReqLevel)
+         /*   if (checkDeathKnightReqs && !hasDeathKnightReqLevel)
             {
                 SendCharCreate(CHAR_CREATE_LEVEL_REQUIREMENT);
                 return;
-            }
+            }*/
 
             // Check name uniqueness in the same step as saving to database
             if (sCharacterCache->GetCharacterCacheByName(createInfo->Name))
@@ -612,7 +612,7 @@ void WorldSession::HandleCharCreateOpcode(WorldPacket& recvData)
             });
         };
 
-        if (allowTwoSideAccounts && !skipCinematics && createInfo->Class != CLASS_DEATH_KNIGHT)
+        if (allowTwoSideAccounts && !skipCinematics)
         {
             finalizeCharacterCreation(PreparedQueryResult(nullptr));
             return;
@@ -620,7 +620,7 @@ void WorldSession::HandleCharCreateOpcode(WorldPacket& recvData)
 
         CharacterDatabasePreparedStatement* stmt = CharacterDatabase.GetPreparedStatement(CHAR_SEL_CHAR_CREATE_INFO);
         stmt->setUInt32(0, GetAccountId());
-        stmt->setUInt32(1, (skipCinematics == 1 || createInfo->Class == CLASS_DEATH_KNIGHT) ? 10 : 1);
+        stmt->setUInt32(1, (skipCinematics == 1 || createInfo->Class == CLASS_NECROMANCER) ? 10 : 1);
         queryCallback.WithPreparedCallback(std::move(finalizeCharacterCreation)).SetNextQuery(CharacterDatabase.AsyncQuery(stmt));
     }));
 }
@@ -1674,18 +1674,12 @@ void WorldSession::HandleCharFactionOrRaceChangeCallback(std::shared_ptr<Charact
         SendCharFactionChange(CHAR_CREATE_ERROR, factionChangeInfo.get());
         return;
     }
-
     if (level < 10)
     {
         SendCharFactionChange(CHAR_CREATE_ERROR, factionChangeInfo.get());
         return;
     }
 
-    if (playerClass == CLASS_DEATH_KNIGHT && (level < 60 || mapId == 609))
-    {
-        SendCharFactionChange(CHAR_CREATE_RESTRICTED_RACECLASS, factionChangeInfo.get());
-        return;
-    }
 
     uint32 newTeam = Player::TeamForRace(factionChangeInfo->Race);
     if (factionChangeInfo->FactionChange == (Player::TeamForRace(oldRace) == newTeam))
@@ -1863,7 +1857,7 @@ void WorldSession::HandleCharFactionOrRaceChangeCallback(std::shared_ptr<Charact
                 TaxiMask const& factionMask = newTeam == HORDE ? sHordeTaxiNodesMask : sAllianceTaxiNodesMask;
                 for (uint8 i = 0; i < numFullTaximasks; ++i)
                 {
-                    uint8 deathKnightExtraNode = (playerClass == CLASS_DEATH_KNIGHT) ? sDeathKnightTaxiNodesMask[i] : 0;
+                    uint8 deathKnightExtraNode = (playerClass == CLASS_NECROMANCER) ? sDeathKnightTaxiNodesMask[i] : 0;
                     taximaskstream << uint32(factionMask[i] | deathKnightExtraNode) << ' ';
                 }
 

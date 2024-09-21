@@ -105,7 +105,7 @@
 #include "WorldPacket.h"
 #include "WorldSession.h"
 #include "WorldStatePackets.h"
-
+#include "Unit.h"
 #define ZONE_UPDATE_INTERVAL (1*IN_MILLISECONDS)
 
 #define PLAYER_SKILL_INDEX(x)       (PLAYER_SKILL_INFO_1_1 + ((x)*3))
@@ -193,6 +193,8 @@ Player::Player(WorldSession* session): Unit(true)
     // players always accept
     if (!GetSession()->HasPermission(rbac::RBAC_PERM_CAN_FILTER_WHISPERS))
         SetAcceptWhispers(true);
+
+
 
     m_regenTimer = 0;
     m_regenTimerCount = 0;
@@ -298,6 +300,7 @@ Player::Player(WorldSession* session): Unit(true)
     m_mailsUpdated = false;
     unReadMails = 0;
     m_nextMailDelivereTime = 0;
+
 
     m_itemUpdateQueueBlocked = false;
 
@@ -525,15 +528,15 @@ bool Player::Create(ObjectGuid::LowType guidlow, CharacterCreateInfo* createInfo
     SetUInt32Value(PLAYER_FIELD_YESTERDAY_CONTRIBUTION, 0);
 
     // set starting level
-    uint32 start_level = GetClass() != CLASS_DEATH_KNIGHT
+    uint32 start_level = GetClass() != CLASS_NECROMANCER
         ? sWorld->getIntConfig(CONFIG_START_PLAYER_LEVEL)
-        : sWorld->getIntConfig(CONFIG_START_DEATH_KNIGHT_PLAYER_LEVEL);
+        : sWorld->getIntConfig(CONFIG_START_PLAYER_LEVEL);
 
     if (m_session->HasPermission(rbac::RBAC_PERM_USE_START_GM_LEVEL))
     {
-        uint32 gm_level = GetClass() != CLASS_DEATH_KNIGHT
+        uint32 gm_level = GetClass() != CLASS_NECROMANCER
             ? sWorld->getIntConfig(CONFIG_START_GM_LEVEL)
-            : std::max(sWorld->getIntConfig(CONFIG_START_GM_LEVEL), sWorld->getIntConfig(CONFIG_START_DEATH_KNIGHT_PLAYER_LEVEL));
+            : sWorld->getIntConfig(CONFIG_START_GM_LEVEL);
 
         if (gm_level > start_level)
             start_level = gm_level;
@@ -596,7 +599,7 @@ bool Player::Create(ObjectGuid::LowType guidlow, CharacterCreateInfo* createInfo
                 switch (iProto->Spells[0].SpellCategory)
                 {
                     case SPELL_CATEGORY_FOOD:                                // food
-                        count = GetClass() == CLASS_DEATH_KNIGHT ? 10 : 4;
+                        count = 4;
                         break;
                     case SPELL_CATEGORY_DRINK:                                // drink
                         count = 2;
@@ -732,6 +735,10 @@ uint32 Player::EnvironmentalDamage(EnviromentalDamage type, uint32 damage)
             absorb = dmgInfo.GetAbsorb();
             resist = dmgInfo.GetResist();
             damage = dmgInfo.GetDamage();
+            if (this->HasAura(81064))
+                damage *= 0.5f;
+            if (this->HasAura(80436))
+                damage = 0.0f;
             break;
         }
         default:
@@ -854,7 +861,7 @@ void Player::HandleDrowning(uint32 time_diff)
     }
 
     // In dark water
-    if (m_MirrorTimerFlags & UNDERWATER_INDARKWATER)
+   /* if (m_MirrorTimerFlags & UNDERWATER_INDARKWATER)
     {
         // Fatigue timer not activated - activate it
         if (m_MirrorTimer[FATIGUE_TIMER] == DISABLED_MIRROR_TIMER)
@@ -889,7 +896,7 @@ void Player::HandleDrowning(uint32 time_diff)
             StopMirrorTimer(FATIGUE_TIMER);
         else if (m_MirrorTimerFlagsLast & UNDERWATER_INDARKWATER)
             SendMirrorTimer(FATIGUE_TIMER, DarkWaterTime, m_MirrorTimer[FATIGUE_TIMER], 10);
-    }
+    }*/
 
     if (m_MirrorTimerFlags & (UNDERWATER_INLAVA /*| UNDERWATER_INSLIME*/) && !(_lastLiquid && _lastLiquid->SpellID))
     {
@@ -1278,7 +1285,9 @@ void Player::Update(uint32 p_time)
     UpdateEnchantTime(p_time);
     UpdateHomebindTime(p_time);
 
-    if (GetClass() == CLASS_DEATH_KNIGHT)
+   
+
+    if (GetClass() == CLASS_NECROMANCER)
     {
         // Update rune timers
         for (uint8 i = 0; i < MAX_RUNES; ++i)
@@ -1498,7 +1507,7 @@ bool Player::BuildEnumData(PreparedQueryResult result, WorldPacket* data)
     CreatureFamily petFamily = CREATURE_FAMILY_NONE;
 
     // show pet at selection character in character list only for non-ghost character
-    if (result && !(playerFlags & PLAYER_FLAGS_GHOST) && (plrClass == CLASS_WARLOCK || plrClass == CLASS_HUNTER || plrClass == CLASS_DEATH_KNIGHT))
+    if (result && !(playerFlags & PLAYER_FLAGS_GHOST) && ((plrClass == CLASS_WITCH || plrClass == CLASS_DRUID || plrClass == CLASS_WARLOCK || plrClass == CLASS_HUNTER || plrClass == CLASS_NECROMANCER)))
     {
         uint32 entry = fields[19].GetUInt32();
         CreatureTemplate const* creatureInfo = sObjectMgr->GetCreatureTemplate(entry);
@@ -1712,11 +1721,11 @@ bool Player::TeleportTo(uint32 mapid, float x, float y, float z, float orientati
     }
     else
     {
-        if (GetClass() == CLASS_DEATH_KNIGHT && GetMapId() == 609 && !IsGameMaster() && !HasSpell(50977))
-        {
-            SendTransferAborted(mapid, TRANSFER_ABORT_UNIQUE_MESSAGE, 1);
-            return false;
-        }
+      //  if (GetClass() == CLASS_NECROMANCER && GetMapId() == 609 && !IsGameMaster() && !HasSpell(50977))
+      //  {
+      //      SendTransferAborted(mapid, TRANSFER_ABORT_UNIQUE_MESSAGE, 1);
+       //     return false;
+      //  }
 
         // far teleport to another map
         Map* oldmap = IsInWorld() ? GetMap() : nullptr;
@@ -1976,7 +1985,7 @@ void Player::RegenerateAll()
     Regenerate(POWER_RUNIC_POWER);
 
     // Runes act as cooldowns, and they don't need to send any data
-    if (GetClass() == CLASS_DEATH_KNIGHT)
+    if (GetClass() == CLASS_NECROMANCER)
         for (uint8 i = 0; i < MAX_RUNES; ++i)
             if (uint32 cd = GetRuneCooldown(i))
                 SetRuneCooldown(i, (cd > m_regenTimer) ? cd - m_regenTimer : 0);
@@ -2588,7 +2597,7 @@ void Player::InitTalentForLevel()
     if (level < 10)
     {
         // Remove all talent points
-        if (GetUsedTalentCount() > 0)                           // Free any used talents
+        if (GetUsedTalentCount() > 0)                // Free any used talents
         {
             ResetTalents(true);
             SetFreeTalentPoints(0);
@@ -2720,7 +2729,7 @@ void Player::InitStatsForLevel(bool reapplyMods)
     SetFloatValue(UNIT_FIELD_RESISTANCEBUFFMODSPOSITIVE + AsUnderlyingType(SPELL_SCHOOL_NORMAL), 0.0f);
     SetFloatValue(UNIT_FIELD_RESISTANCEBUFFMODSNEGATIVE + AsUnderlyingType(SPELL_SCHOOL_NORMAL), 0.0f);
     // set other resistance to original value (0)
-    for (uint8 i = SPELL_SCHOOL_HOLY; i < MAX_SPELL_SCHOOL; ++i)
+    for (uint8 i = 0; i < MAX_SPELL_SCHOOL; ++i)
     {
         SetResistance(SpellSchools(i), 0);
         SetFloatValue(UNIT_FIELD_RESISTANCEBUFFMODSPOSITIVE + i, 0.0f);
@@ -3481,7 +3490,46 @@ void Player::LearnSpell(uint32 spell_id, bool dependent, uint32 fromSkill /*= 0*
         }
     }
 }
+void Player::TempLearnSpell(uint32 spell_id, bool dependent, uint32 fromSkill /*= 0*/)
+{
+	PlayerSpellMap::iterator itr = m_spells.find(spell_id);
 
+	bool disabled = (itr != m_spells.end()) ? itr->second.disabled : false;
+	bool active = disabled ? itr->second.active : true;
+
+	bool learning = AddSpell(spell_id, active, true, dependent, false, false, fromSkill);
+
+	// prevent duplicated entries in spell book, also not send if not in world (loading)
+	if (learning && IsInWorld())
+	{
+		WorldPacket data(SMSG_LEARNED_SPELL, 6);
+		data << uint32(spell_id);
+		data << uint16(0);
+		SendDirectMessage(&data);
+
+		// Cast spell 90900 to apply the aura
+		CastSpell(this, 90900, true); // Assuming the player should cast it on themselves
+	}
+
+	// Learn all disabled higher ranks and required spells (recursive)
+	if (disabled)
+	{
+		if (uint32 nextSpell = sSpellMgr->GetNextSpellInChain(spell_id))
+		{
+			PlayerSpellMap::iterator iter = m_spells.find(nextSpell);
+			if (iter != m_spells.end() && iter->second.disabled)
+				TempLearnSpell(nextSpell, false, fromSkill);
+		}
+
+		SpellsRequiringSpellMapBounds spellsRequiringSpell = sSpellMgr->GetSpellsRequiringSpellBounds(spell_id);
+		for (SpellsRequiringSpellMap::const_iterator itr2 = spellsRequiringSpell.first; itr2 != spellsRequiringSpell.second; ++itr2)
+		{
+			PlayerSpellMap::iterator iter2 = m_spells.find(itr2->second);
+			if (iter2 != m_spells.end() && iter2->second.disabled)
+				TempLearnSpell(itr2->second, false, fromSkill);
+		}
+	}
+}
 void Player::RemoveSpell(uint32 spell_id, bool disabled, bool learn_low_rank)
 {
     PlayerSpellMap::iterator itr = m_spells.find(spell_id);
@@ -3667,20 +3715,14 @@ void Player::RemoveSpell(uint32 spell_id, bool disabled, bool learn_low_rank)
         }
     }
 
-    if (m_canTitanGrip)
+    if (spell_id == 46917 && m_canTitanGrip)
     {
-        if (spellInfo && spellInfo->IsPassive() && spellInfo->HasEffect(SPELL_EFFECT_TITAN_GRIP))
-        {
-            RemoveAurasDueToSpell(m_titanGripPenaltySpellId);
-            SetCanTitanGrip(false);
-        }
+        RemoveAurasDueToSpell(m_titanGripPenaltySpellId);
+        SetCanTitanGrip(false);
     }
 
-    if (m_canDualWield)
-    {
-        if (spellInfo && spellInfo->IsPassive() && spellInfo->HasEffect(SPELL_EFFECT_DUAL_WIELD))
-            SetCanDualWield(false);
-    }
+    if (spell_id == 674 && m_canDualWield)
+        SetCanDualWield(false);
 
     if (sWorld->getBoolConfig(CONFIG_OFFHAND_CHECK_AT_SPELL_UNLEARN))
         AutoUnequipOffhandIfNeed();
@@ -3995,7 +4037,7 @@ void Player::DeleteFromDB(ObjectGuid playerguid, uint32 accountId, bool updateRe
     else if (characterInfo)    // To avoid a query, we select loaded data. If it doesn't exist, return.
     {
         // Define the required variables
-        uint32 charDelete_minLvl = sWorld->getIntConfig(characterInfo->Class != CLASS_DEATH_KNIGHT ? CONFIG_CHARDELETE_MIN_LEVEL : CONFIG_CHARDELETE_DEATH_KNIGHT_MIN_LEVEL);
+        uint32 charDelete_minLvl = sWorld->getIntConfig(characterInfo->Class != CLASS_NECROMANCER ? CONFIG_CHARDELETE_MIN_LEVEL : CONFIG_CHARDELETE_MIN_LEVEL);
 
         // if we want to finalize the character removal or the character does not meet the level requirement of either heroic or non-heroic settings,
         // we set it to mode CHAR_DELETE_REMOVE
@@ -4869,13 +4911,20 @@ void Player::RepopAtGraveyard()
     // for example from WorldSession::HandleMovementOpcodes
 
     AreaTableEntry const* zone = sAreaTableStore.LookupEntry(GetAreaId());
-
+    MapEntry const* mapEntry = sMapStore.LookupEntry(GetMapId());
     bool shouldResurrect = false;
     // Such zones are considered unreachable as a ghost and the player must be automatically revived
     if ((!IsAlive() && zone && zone->Flags & AREA_FLAG_NEED_FLY) || GetTransport() || GetPositionZ() < GetMap()->GetMinHeight(GetPositionX(), GetPositionY()))
     {
-        shouldResurrect = true;
-        SpawnCorpseBones();
+        if (mapEntry && GetMapId() == 726)
+        {
+            shouldResurrect = false;
+        }
+        else
+        {
+            shouldResurrect = true;
+            SpawnCorpseBones();
+        }
     }
 
     WorldSafeLocsEntry const* ClosestGrave;
@@ -5210,7 +5259,7 @@ void Player::GetDodgeFromAgility(float &diminishing, float &nondiminishing) cons
     {
          0.036640f, // Warrior
          0.034943f, // Paladin
-        -0.040873f, // Hunter
+         -0.040873f, // Hunter
          0.020957f, // Rogue
          0.034178f, // Priest
          0.036640f, // DK
@@ -5218,7 +5267,12 @@ void Player::GetDodgeFromAgility(float &diminishing, float &nondiminishing) cons
          0.036587f, // Mage
          0.024211f, // Warlock
          0.0f,      // ??
-         0.056097f  // Druid
+         0.056097f,  // Druid
+         0.056097f,  // Witch
+         0.020957f, // Monk
+         0.030957f, // Warden
+         0.021080f // BARD
+
     };
     // Crit/agility to dodge/agility coefficient multipliers; 3.2.0 increased required agility by 15%
     const float crit_to_dodge[MAX_CLASSES] =
@@ -5228,12 +5282,16 @@ void Player::GetDodgeFromAgility(float &diminishing, float &nondiminishing) cons
          1.11f/1.15f,    // Hunter
          2.00f/1.15f,    // Rogue
          1.00f/1.15f,    // Priest
-         0.85f/1.15f,    // DK
+         1.00f/1.15f,    // DK
          1.60f/1.15f,    // Shaman
          1.00f/1.15f,    // Mage
          0.97f/1.15f,    // Warlock (?)
          0.0f,           // ??
-         2.00f/1.15f     // Druid
+         2.00f/1.15f,     // Druid
+         2.00f / 1.15f,     // WITCH
+         2.00f / 1.15f,    // monk
+         2.00f / 1.15f,    // warden
+         2.00f / 1.15f,    // bard
     };
 
     uint8 level = GetLevel();
@@ -6673,11 +6731,11 @@ bool Player::RewardHonor(Unit* victim, uint32 groupsize, int32 honor, bool pvpto
             //  [29..38] Other title and player name
             //  [39+]    Nothing
             uint32 victim_title = victim->GetUInt32Value(PLAYER_CHOSEN_TITLE);
-                                                        // Get Killer titles, CharTitlesEntry::MaskID
-            // Ranks:
-            //  title[1..14]  -> rank[5..18]
-            //  title[15..28] -> rank[5..18]
-            //  title[other]  -> 0
+            // Get Killer titles, CharTitlesEntry::MaskID
+// Ranks:
+//  title[1..14]  -> rank[5..18]
+//  title[15..28] -> rank[5..18]
+//  title[other]  -> 0
             if (victim_title == 0)
                 victim_guid.Clear();                     // Don't show HK: <rank> message, only log.
             else if (victim_title < 15)
@@ -7105,8 +7163,8 @@ void Player::DuelComplete(DuelCompleteType type)
             opponent->UpdateAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_WIN_DUEL, 1);
 
             // Credit for quest Death's Challenge
-            if (GetClass() == CLASS_DEATH_KNIGHT && opponent->GetQuestStatus(12733) == QUEST_STATUS_INCOMPLETE)
-                opponent->CastSpell(opponent, 52994, true);
+          //  if (GetClass() == CLASS_NECROMANCER && opponent->GetQuestStatus(12733) == QUEST_STATUS_INCOMPLETE)
+              //  opponent->CastSpell(opponent, 52994, true);
 
             // Honor points after duel (the winner) - ImpConfig
             if (uint32 amount = sWorld->getIntConfig(CONFIG_HONOR_AFTER_DUEL))
@@ -8857,6 +8915,30 @@ void Player::SendInitWorldStates(uint32 zoneId, uint32 areaId)
                 packet.Worldstates.emplace_back(1325, 1); // AV_AID_A_C
             }
             break;
+        case 6665:
+            if (battleground && battleground->GetTypeID(true) == BATTLEGROUND_DG)
+                battleground->FillInitialWorldStates(packet);
+            break;
+        case 6296: // 
+            if (battleground && battleground->GetTypeID(true) == BATTLEGROUND_TV)
+                battleground->FillInitialWorldStates(packet);
+            break;
+        case 6732: // 
+            if (battleground && battleground->GetTypeID(true) == BATTLEGROUND_TTP)
+                battleground->FillInitialWorldStates(packet);
+            break;
+        case 8008: // 
+            if (battleground && battleground->GetTypeID(true) == BATTLEGROUND_AF)
+                battleground->FillInitialWorldStates(packet);
+            break;
+        case 5449:
+            if (battleground && battleground->GetTypeID(true) == BATTLEGROUND_BFG)
+                battleground->FillInitialWorldStates(packet);
+            break;
+        case 5031: // Twin Peaks
+            if (battleground && battleground->GetTypeID(true) == BATTLEGROUND_TP)
+                battleground->FillInitialWorldStates(packet);
+            break;
         case 3277: // Warsong Gulch
             if (battleground && battleground->GetTypeID(true) == BATTLEGROUND_WS)
                 battleground->FillInitialWorldStates(packet);
@@ -8889,7 +8971,7 @@ void Player::SendInitWorldStates(uint32 zoneId, uint32 areaId)
                 packet.Worldstates.emplace_back(1777, 0);    // horde resources
                 packet.Worldstates.emplace_back(1778, 0);    // horde bases
                 packet.Worldstates.emplace_back(1779, 0);    // alliance bases
-                packet.Worldstates.emplace_back(1780, 2000); // max resources (2000)
+                packet.Worldstates.emplace_back(1780, 1600); // max resources (2000)
                 packet.Worldstates.emplace_back(1782, 0);    // blacksmith alliance
                 packet.Worldstates.emplace_back(1783, 0);    // blacksmith horde
                 packet.Worldstates.emplace_back(1784, 0);    // blacksmith alliance controlled
@@ -8908,7 +8990,7 @@ void Player::SendInitWorldStates(uint32 zoneId, uint32 areaId)
                 packet.Worldstates.emplace_back(1845, 1);    // farm (1 - uncontrolled)
                 packet.Worldstates.emplace_back(1846, 1);    // blacksmith (1 - uncontrolled)
                 packet.Worldstates.emplace_back(1861, 2);    // unk
-                packet.Worldstates.emplace_back(1955, 1800); // warning limit (1800)
+                packet.Worldstates.emplace_back(1955, 1400); // warning limit (1800)
             }
             break;
         case 3820: // Eye of the Storm
@@ -9539,7 +9621,15 @@ uint8 Player::FindEquipSlot(ItemTemplate const* proto, uint32 slot, bool swap) c
                         slots[0] = EQUIPMENT_SLOT_RANGED;
                     break;
                 case ITEM_SUBCLASS_ARMOR_SIGIL:
-                    if (playerClass == CLASS_DEATH_KNIGHT)
+                    if (playerClass == CLASS_NECROMANCER)
+                        slots[0] = EQUIPMENT_SLOT_RANGED;
+                    break;
+                case ITEM_SUBCLASS_ARMOR_TROPHY:
+                    if (playerClass == CLASS_WITCH)
+                        slots[0] = EQUIPMENT_SLOT_RANGED;
+                    break;
+                case ITEM_SUBCLASS_ARMOR_FLINTLOCK_PISTOL:
+                    if (playerClass == CLASS_ROGUE)
                         slots[0] = EQUIPMENT_SLOT_RANGED;
                     break;
             }
@@ -11613,6 +11703,7 @@ InventoryResult Player::CanUseItem(Item* pItem, bool not_loading) const
                     {
                         case CLASS_HUNTER:
                         case CLASS_SHAMAN:
+                        case CLASS_WARDEN:
                             allowEquip = (itemSkill == SKILL_MAIL);
                             break;
                         case CLASS_PALADIN:
@@ -11716,9 +11807,9 @@ InventoryResult Player::CanRollForItemInLFG(ItemTemplate const* proto, WorldObje
     if (proto->Class == ITEM_CLASS_WEAPON && GetSkillValue(item_weapon_skills[proto->SubClass]) == 0)
         return EQUIP_ERR_NO_REQUIRED_PROFICIENCY;
 
-    if (proto->Class == ITEM_CLASS_ARMOR && proto->SubClass > ITEM_SUBCLASS_ARMOR_MISCELLANEOUS && proto->SubClass < ITEM_SUBCLASS_ARMOR_BUCKLER && proto->InventoryType != INVTYPE_CLOAK)
+    if (proto->Class == ITEM_CLASS_ARMOR && proto->SubClass > ITEM_SUBCLASS_ARMOR_MISC && proto->SubClass < ITEM_SUBCLASS_ARMOR_BUCKLER && proto->InventoryType != INVTYPE_CLOAK)
     {
-        if (_class == CLASS_WARRIOR || _class == CLASS_PALADIN || _class == CLASS_DEATH_KNIGHT)
+        if (_class == CLASS_WARRIOR || _class == CLASS_PALADIN)
         {
             if (GetLevel() < 40)
             {
@@ -11738,12 +11829,15 @@ InventoryResult Player::CanRollForItemInLFG(ItemTemplate const* proto, WorldObje
             else if (proto->SubClass != ITEM_SUBCLASS_ARMOR_MAIL)
                 return EQUIP_ERR_CANT_DO_RIGHT_NOW;
         }
+      //  if (_class == CLASS_WARDEN)
+         //   if (proto->SubClass != ITEM_SUBCLASS_ARMOR_MAIL)
+            //    return EQUIP_ERR_CANT_DO_RIGHT_NOW;
 
-        if (_class == CLASS_ROGUE || _class == CLASS_DRUID)
+        if (_class == CLASS_ROGUE || _class == CLASS_DRUID || _class == CLASS_WITCH  || _class == CLASS_MONK  || _class == CLASS_BARD)
             if (proto->SubClass != ITEM_SUBCLASS_ARMOR_LEATHER)
                 return EQUIP_ERR_CANT_DO_RIGHT_NOW;
 
-        if (_class == CLASS_MAGE || _class == CLASS_PRIEST || _class == CLASS_WARLOCK)
+        if (_class == CLASS_MAGE || _class == CLASS_PRIEST || _class == CLASS_WARLOCK || _class == CLASS_NECROMANCER)
             if (proto->SubClass != ITEM_SUBCLASS_ARMOR_CLOTH)
                 return EQUIP_ERR_CANT_DO_RIGHT_NOW;
     }
@@ -12022,7 +12116,7 @@ Item* Player::EquipItem(uint16 pos, Item* pItem, bool update)
             _ApplyItemMods(pItem, slot, true);
 
             if (pProto && IsInCombat() && (pProto->Class == ITEM_CLASS_WEAPON || pProto->InventoryType == INVTYPE_RELIC) && m_weaponChangeTimer == 0)
-            {
+            {  /// WEAPON SWAP
                 uint32 cooldownSpell = GetClass() == CLASS_ROGUE ? 6123 : 6119;
                 SpellInfo const* spellProto = sSpellMgr->GetSpellInfo(cooldownSpell);
 
@@ -21294,7 +21388,7 @@ bool Player::ActivateTaxiPathTo(std::vector<uint32> const& nodes, Creature* npc 
     // only one mount ID for both sides. Probably not good to use 315 in case DBC nodes
     // change but I couldn't find a suitable alternative. OK to use class because only DK
     // can use this taxi.
-    uint32 mount_display_id = sObjectMgr->GetTaxiMountDisplayId(sourcenode, GetTeam(), npc == nullptr || (sourcenode == 315 && GetClass() == CLASS_DEATH_KNIGHT));
+    uint32 mount_display_id = sObjectMgr->GetTaxiMountDisplayId(sourcenode, GetTeam(), npc == nullptr || (sourcenode == 315 && GetClass() == CLASS_NECROMANCER));
 
     // in spell case allow 0 model
     if ((mount_display_id == 0 && spellid == 0) || sourcepath == 0)
@@ -22198,8 +22292,8 @@ WorldLocation Player::GetStartPosition() const
     PlayerInfo const* info = sObjectMgr->GetPlayerInfo(GetRace(), GetClass());
     ASSERT(info);
     uint32 mapId = info->mapId;
-    if (GetClass() == CLASS_DEATH_KNIGHT && HasSpell(50977))
-        mapId = 0;
+   // if (GetClass() == CLASS_NECROMANCER && HasSpell(50977))
+     //   mapId = 0;
     return WorldLocation(mapId, info->positionX, info->positionY, info->positionZ, 0);
 }
 
@@ -22919,8 +23013,8 @@ void Player::LearnDefaultSkill(uint32 skillId, uint16 rank)
                 skillValue = maxValue;
             else if (rcInfo->Flags & SKILL_FLAG_ALWAYS_MAX_VALUE)
                 skillValue = maxValue;
-            else if (GetClass() == CLASS_DEATH_KNIGHT)
-                skillValue = std::min(std::max<uint16>({ 1, uint16((GetLevel() - 1) * 5) }), maxValue);
+           // else if (GetClass() == CLASS_NECROMANCER)
+              //  skillValue = std::min(std::max<uint16>({ 1, uint16((GetLevel() - 1) * 5) }), maxValue);
             else if (skillId == SKILL_FIST_WEAPONS)
                 skillValue = std::max<uint16>(1, GetSkillValue(SKILL_UNARMED));
             else if (skillId == SKILL_LOCKPICKING)
@@ -22942,8 +23036,8 @@ void Player::LearnDefaultSkill(uint32 skillId, uint16 rank)
             uint16 skillValue = 1;
             if (rcInfo->Flags & SKILL_FLAG_ALWAYS_MAX_VALUE)
                 skillValue = maxValue;
-            else if (GetClass() == CLASS_DEATH_KNIGHT)
-                skillValue = std::min(std::max<uint16>({ uint16(1), uint16((GetLevel() - 1) * 5) }), maxValue);
+          //  else if (GetClass() == CLASS_NECROMANCER)
+           //     skillValue = std::min(std::max<uint16>({ uint16(1), uint16((GetLevel() - 1) * 5) }), maxValue);
 
             SetSkill(skillId, rank, skillValue, maxValue);
             break;
@@ -24183,7 +24277,7 @@ void Player::ProcessTerrainStatusUpdate(ZLiquidStatus oldLiquidStatus, Optional<
         }
 
         // Fatigue bar state (if not on flight path or transport)
-        if ((newLiquidData->type_flags & MAP_LIQUID_TYPE_DARK_WATER) && !IsInFlight() && !GetTransport())
+       if ((newLiquidData->type_flags & MAP_LIQUID_TYPE_DARK_WATER) && !IsInFlight() && !GetTransport())
             m_MirrorTimerFlags |= UNDERWATER_INDARKWATER;
         else
             m_MirrorTimerFlags &= ~UNDERWATER_INDARKWATER;
@@ -24215,7 +24309,7 @@ void Player::AtExitCombat()
     Unit::AtExitCombat();
     UpdatePotionCooldown();
 
-    if (GetClass() == CLASS_DEATH_KNIGHT)
+    if (GetClass() == CLASS_NECROMANCER)
         for (uint8 i = 0; i < MAX_RUNES; ++i)
         {
             SetRuneTimer(i, 0xFFFFFFFF);
@@ -24408,13 +24502,13 @@ void Player::InitGlyphsForLevel()
     // 0x3F = 0x01 | 0x02 | 0x04 | 0x08 | 0x10 | 0x20 for 80 level
     if (level >= 15)
         value |= (0x01 | 0x02);
-    if (level >= 30)
+    if (level >= 20)
         value |= 0x08;
-    if (level >= 50)
+    if (level >= 30)
         value |= 0x04;
-    if (level >= 70)
+    if (level >= 40)
         value |= 0x10;
-    if (level >= 80)
+    if (level >= 50)
         value |= 0x20;
 
     SetUInt32Value(PLAYER_GLYPHS_ENABLED, value);
@@ -24605,7 +24699,7 @@ void Player::ConvertRune(uint8 index, RuneType newType)
 
 void Player::ResyncRunes() const
 {
-    if (GetClass() != CLASS_DEATH_KNIGHT)
+    if (GetClass() != CLASS_NECROMANCER)
         return;
 
     WorldPackets::Spells::ResyncRunes packet;
@@ -24639,7 +24733,7 @@ static RuneType runeSlotTypes[MAX_RUNES] =
 
 void Player::InitRunes()
 {
-    if (GetClass() != CLASS_DEATH_KNIGHT)
+    if (GetClass() != CLASS_NECROMANCER)
         return;
 
     m_runes = new Runes;
@@ -24789,7 +24883,7 @@ uint32 Player::CalculateTalentsPoints() const
 {
     uint32 baseForLevel = GetLevel() < 10 ? 0 : GetLevel() - 9;
 
-    if (GetClass() != CLASS_DEATH_KNIGHT || GetMapId() != 609)
+    if (GetMapId() != 609)
         return uint32(baseForLevel * sWorld->getRate(RATE_TALENT));
 
     uint32 talentPointsForLevel = GetLevel() < 56 ? 0 : GetLevel() - 55;
@@ -25409,7 +25503,7 @@ void Player::BuildPlayerTalentsInfoData(WorldPacket* data)
 {
     *data << uint32(GetFreeTalentPoints());                 // unspentTalentPoints
     *data << uint8(GetSpecsCount());                        // talent group count (0, 1 or 2)
-    *data << uint8(GetActiveSpec());                        // talent group index (0 or 1)
+    *data << uint8(GetActiveSpec());
 
     if (GetSpecsCount())
     {
@@ -25467,7 +25561,7 @@ void Player::BuildPlayerTalentsInfoData(WorldPacket* data)
             *data << uint8(MAX_GLYPH_SLOT_INDEX);           // glyphs count
 
             for (uint8 i = 0; i < MAX_GLYPH_SLOT_INDEX; ++i)
-                *data << uint16(GetGlyph(specIdx, i));               // GlyphProperties.dbc
+                *data << uint16(GetGlyph(specIdx, i));         // GlyphProperties.dbc
         }
     }
 }
@@ -26593,8 +26687,18 @@ Pet* Player::SummonPet(uint32 entry, float x, float y, float z, float ang, PetTy
 
         if (duration > 0)
             pet->SetDuration(duration);
-
-        // Generate a new name for the newly summoned ghoul
+        if (pet->IsPetnGhoul())
+        {
+            std::string new_name = sObjectMgr->GeneratePetName(entry);
+            if (!new_name.empty())
+                pet->SetName(new_name);
+        }
+        if (pet->IsPetReaver())
+        {
+            std::string new_name = sObjectMgr->GeneratePetName(entry);
+            if (!new_name.empty())
+                pet->SetName(new_name);
+        }
         if (pet->IsPetGhoul())
         {
             std::string new_name = sObjectMgr->GeneratePetName(entry);
@@ -26706,13 +26810,15 @@ void Player::SendSupercededSpell(uint32 oldSpell, uint32 newSpell) const
 
 bool Player::ValidateAppearance(uint8 race, uint8 class_, uint8 gender, uint8 hairID, uint8 hairColor, uint8 faceID, uint8 facialHair, uint8 skinColor, bool create /*=false*/)
 {
+    if (race == RACE_HIGHELF || race == RACE_REVANTUSK || race == RACE_DRAGONMAW || race == RACE_WILDHAMMER || race == RACE_WORGEN || race == RACE_DARKIRON)
+        return true;
     auto validateCharSection = [class_, create](CharSectionsEntry const* entry) -> bool
     {
         if (!entry)
             return false;
 
         // Check Death Knight exclusive
-        if (class_ != CLASS_DEATH_KNIGHT && entry->HasFlag(SECTION_FLAG_DEATH_KNIGHT))
+        if (class_ != CLASS_NECROMANCER && entry->HasFlag(SECTION_FLAG_DEATH_KNIGHT))
             return false;
 
         // Character creation/customize has some limited sections (as opposed to barbershop)

@@ -335,6 +335,8 @@ private:
     ObjectGuid _targetGUID;
 };
 
+
+
 void AddSC_deathknight_pet_scripts()
 {
     RegisterCreatureAI(npc_pet_dk_ebon_gargoyle);

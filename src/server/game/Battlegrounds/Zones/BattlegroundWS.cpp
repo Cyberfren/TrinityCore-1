@@ -26,6 +26,7 @@
 #include "Player.h"
 #include "WorldPacket.h"
 #include "WorldStatePackets.h"
+#include "BattlegroundNode.h"
 
 // these variables aren't used outside of this file, so declare them only here
 enum BG_WSG_Rewards
@@ -41,6 +42,11 @@ uint32 BG_WSG_Honor[BG_HONOR_MODE_NUM][BG_WSG_REWARD_NUM] =
     {20, 40, 40}, // normal honor
     {60, 40, 80}  // holiday
 };
+uint32 BattlegroundWS::GetRandomIronNodePair()
+{
+    return urand(1, 3);  // Generates a random number between 1 and 3
+}
+
 
 BattlegroundWS::BattlegroundWS()
 {
@@ -724,7 +730,10 @@ bool BattlegroundWS::SetupBattleground()
         TC_LOG_ERROR("sql.sql", "BatteGroundWS: Failed to spawn some object Battleground not created!");
         return false;
     }
+    uint32 randomSet = GetRandomIronNodePair();
 
+    // Spawn nodes for the battleground with the determined set
+    SpawnNodeWS(randomSet);
     WorldSafeLocsEntry const* sg = sWorldSafeLocsStore.LookupEntry(WS_GRAVEYARD_MAIN_ALLIANCE);
     if (!sg || !AddSpiritGuide(WS_SPIRIT_MAIN_ALLIANCE, sg->Loc.X, sg->Loc.Y, sg->Loc.Z, 3.124139f, TEAM_ALLIANCE))
     {
@@ -744,6 +753,87 @@ bool BattlegroundWS::SetupBattleground()
     return true;
 }
 
+void BattlegroundWS::SpawnNodeWS(uint32 randomSet)
+{
+    std::vector<WodeInfo> nodes;
+    switch (randomSet)
+    {
+    case 1:
+        nodes = {
+            {BG_WS_OBJECT_TIN_NODE_1, BG_OBJECT_TIN_NODE_ENTRY, 1109.414f, 1270.834f, 332.863f, 6.192655f, NODE_RESPAWN_7},
+            {BG_WS_OBJECT_TIN_NODE_2, BG_OBJECT_TIN_NODE_ENTRY, 1366.3644f, 1419.857f,  324.8925f, 11.192655f, NODE_RESPAWN_7},
+            {BG_WS_OBJECT_MAGE_NODE_1, BG_OBJECT_MAGE_NODE_ENTRY, 1302.4204f, 1542.604115f, 313.5758569f, 11.192655f, NODE_RESPAWN_7},
+            {BG_WS_OBJECT_BRIAR_NODE_1, BG_OBJECT_BRIAR_NODE_ENTRY, 1126.4954f, 1510.35915f,311.748569f, 11.192655f, NODE_RESPAWN_7},
+            {BG_WS_OBJECT_SILVER_NODE_1, BG_OBJECT_SILVER_NODE_ENTRY, 1289.50004f, 1302.676115f, 317.74969f, 11.192655f, NODE_RESPAWN_10}
+        };
+        break;
+
+    case 2:
+        nodes = {
+           {BG_WS_OBJECT_TIN_NODE_1, BG_OBJECT_TIN_NODE_ENTRY, 1104.3304f, 1485.86715f, 321.031f, 2.192655f, NODE_RESPAWN_7},
+           {BG_WS_OBJECT_TIN_NODE_2, BG_OBJECT_TIN_NODE_ENTRY, 1403.8870f, 1509.763f, 332.370789f, 7.192655f, NODE_RESPAWN_7},
+           {BG_WS_OBJECT_MAGE_NODE_1, BG_OBJECT_MAGE_NODE_ENTRY, 1115.07104f, 1447.29315f, 315.9569f, 1.192655f, NODE_RESPAWN_7},
+           {BG_WS_OBJECT_BRIAR_NODE_1, BG_OBJECT_BRIAR_NODE_ENTRY, 1341.1504f, 1364.71815f, 321.9118569f, 9.192655f, NODE_RESPAWN_7},
+           {BG_WS_OBJECT_SILVER_NODE_1, BG_OBJECT_SILVER_NODE_ENTRY, 1267.2784f, 1599.259115f, 319.1985f, 11.192655f, NODE_RESPAWN_10}
+        };
+        break;
+
+    case 3:
+        nodes = {
+            {BG_WS_OBJECT_TIN_NODE_1,BG_OBJECT_TIN_NODE_ENTRY, 1374.75454f, 1486.84115f, 326.0131f, 12.192655f, NODE_RESPAWN_7},
+            {BG_WS_OBJECT_TIN_NODE_2,BG_OBJECT_TIN_NODE_ENTRY, 1075.1504f, 1419.40115f, 324.028569f, 1.192655f, NODE_RESPAWN_7},
+            {BG_WS_OBJECT_MAGE_NODE_1,BG_OBJECT_MAGE_NODE_ENTRY, 1166.8984f, 1450.31675f, 308.539569f, 11.192655f, NODE_RESPAWN_7},
+            {BG_WS_OBJECT_BRIAR_NODE_1, BG_OBJECT_BRIAR_NODE_ENTRY, 1333.6074f, 1440.35915f, 323.43385f, 8.192655f, NODE_RESPAWN_7},
+            {BG_WS_OBJECT_SILVER_NODE_1,BG_OBJECT_GOLD_NODE_ENTRY, 1308.650f, 1608.1651f, 327.8589f, 4.192655f, NODE_RESPAWN_10}
+        };
+        break;
+    }
+
+    for (const auto& node : nodes) {
+        AddObject(node.objectType, node.entry, node.x, node.y, node.z, node.orientation, 0, 0, 0, 0, node.respawnTime);
+    }
+}
+
+
+void BattlegroundWS::UpdateNodeStatus()
+{
+    time_t currentTime = std::time(nullptr);  // Get current time
+
+    for (auto& node : nodes)
+    {
+        // Check if the node is active and needs to be checked for respawn
+        if (node.isActive)
+        {
+            // If 7 minutes have passed since last respawn, deactivate the node
+            if (difftime(currentTime, node.lastRespawnTime) >= 7 * 60)
+            {
+                node.isActive = false; // Mark node as not active
+                // Handle node deactivation (e.g., remove it from the game world)
+            }
+        }
+        else
+        {
+            // If the node is not active and respawn time has passed, handle respawn
+            if (difftime(currentTime, node.lastRespawnTime) >= node.respawnTime)
+            {
+                HandleNodeRespawn(node);
+            }
+        }
+    }
+}
+
+void BattlegroundWS::HandleNodeRespawn(WodeInfo& node)
+{
+    node.isActive = true; // Mark node as active
+    node.lastRespawnTime = std::time(nullptr); // Update last respawn time
+    // Handle node reactivation (e.g., add it back to the game world)
+}
+
+void BattlegroundWS::OnUpdate(uint32 diff)
+{
+    // Call UpdateNodeStatus periodically
+    UpdateNodeStatus();
+}
 void BattlegroundWS::Reset()
 {
     //call parent's class reset

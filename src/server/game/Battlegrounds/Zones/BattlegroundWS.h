@@ -20,6 +20,7 @@
 
 #include "Battleground.h"
 #include "BattlegroundScore.h"
+#include "BattlegroundNode.h"
 
 enum BG_WS_TimerOrScore
 {
@@ -104,7 +105,12 @@ enum BG_WS_ObjectTypes
     BG_WS_OBJECT_REGENBUFF_2    = 15,
     BG_WS_OBJECT_BERSERKBUFF_1  = 16,
     BG_WS_OBJECT_BERSERKBUFF_2  = 17,
-    BG_WS_OBJECT_MAX            = 18
+    BG_WS_OBJECT_TIN_NODE_1    = 18,
+    BG_WS_OBJECT_TIN_NODE_2    = 19,
+    BG_WS_OBJECT_MAGE_NODE_1    = 20,
+    BG_WS_OBJECT_BRIAR_NODE_1   = 21,
+    BG_WS_OBJECT_SILVER_NODE_1    = 22,
+    BG_WS_OBJECT_MAX            = 23
 };
 
 enum BG_WS_ObjectEntry
@@ -194,13 +200,32 @@ struct BattlegroundWGScore final : public BattlegroundScore
         uint32 FlagCaptures;
         uint32 FlagReturns;
 };
+struct WodeInfo
+{
 
+    uint32 objectType;
+    uint32 entry;
+    float x;
+    float y;
+    float z;
+    float orientation;
+    uint32 respawnTime;
+    time_t lastRespawnTime;  // Time of last respawn
+    bool isActive;           // Whether the node is active or not
+};
 class BattlegroundWS : public Battleground
 {
     public:
         /* Construction */
         BattlegroundWS();
         ~BattlegroundWS();
+
+        //resources
+        uint32 GetRandomIronNodePair();
+        void SpawnNodeWS(uint32 randomSet);
+        void UpdateNodeStatus();
+        void OnUpdate(uint32 diff); // Called periodically
+
 
         /* inherited from BattlegroundClass */
         void AddPlayer(Player* player) override;
@@ -260,6 +285,12 @@ class BattlegroundWS : public Battleground
         bool CheckAchievementCriteriaMeet(uint32 criteriaId, Player const* source, Unit const* target = nullptr, uint32 miscvalue1 = 0) override;
 
     private:
+
+        void HandleNodeRespawn(WodeInfo& node);
+        std::vector<WodeInfo> nodes; // List of nodes in the battleground
+        time_t lastUpdateTime;
+
+
         ObjectGuid m_FlagKeepers[2];                            // 0 - alliance, 1 - horde
         ObjectGuid m_DroppedFlagGUID[2];
         uint8 _flagState[2];                               // for checking flag state

@@ -1210,9 +1210,16 @@ bool Creature::isCanInteractWithBattleMaster(Player* player, bool msg) const
             case BATTLEGROUND_AV:  SendGossipMenuFor(player, 7616, this); break;
             case BATTLEGROUND_WS:  SendGossipMenuFor(player, 7599, this); break;
             case BATTLEGROUND_AB:  SendGossipMenuFor(player, 7642, this); break;
+            case BATTLEGROUND_RB2:
+            case BATTLEGROUND_DG:
+            case BATTLEGROUND_BFG:
+            case BATTLEGROUND_TP:
             case BATTLEGROUND_EY:
             case BATTLEGROUND_NA:
             case BATTLEGROUND_BE:
+            case BATTLEGROUND_AF:
+            case BATTLEGROUND_TTP:
+            case BATTLEGROUND_TV:
             case BATTLEGROUND_AA:
             case BATTLEGROUND_RL:
             case BATTLEGROUND_SA:

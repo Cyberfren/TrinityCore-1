@@ -628,6 +628,13 @@ bool Unit::IsWithinMeleeRangeAt(Position const& pos, Unit const* obj) const
 float Unit::GetMeleeRange(Unit const* target) const
 {
     float range = GetCombatReach() + target->GetCombatReach() + 4.0f / 3.0f;
+    if (this->HasAura(80269))
+        range += 3.0f;
+    if (this->HasAura(80013))
+        range += 2.0f;
+    if (this->HasAura(81059))
+        range += 1.0f;
+
     return std::max(range, NOMINAL_MELEE_RANGE);
 }
 
@@ -1733,8 +1740,8 @@ void Unit::HandleEmoteCommand(Emote emoteId)
     }
 
     // holy resistance exists in pve and comes from level difference, ignore template values
-    if (schoolMask & SPELL_SCHOOL_MASK_HOLY)
-        victimResistance = 0.0f;
+  //  if (schoolMask & SPELL_SCHOOL_MASK_HOLY)
+      //  victimResistance = 0.0f;
 
     // Chaos Bolt exception, ignore all target resistances (unknown attribute?)
     if (spellInfo && spellInfo->SpellFamilyName == SPELLFAMILY_WARLOCK && spellInfo->SpellIconID == 3178)
@@ -2675,7 +2682,7 @@ float Unit::GetUnitBlockChance(WeaponAttackType attType, Unit const* victim) con
     float skillBonus = 0.0f;
     if (Player const* playerVictim = victim->ToPlayer())
     {
-        if (playerVictim->CanBlock())
+      /*  if (playerVictim->CanBlock())
         {
             Item* tmpitem = playerVictim->GetUseableItemByPos(INVENTORY_SLOT_BAG_0, EQUIPMENT_SLOT_OFFHAND);
             if (tmpitem && !tmpitem->IsBroken() && tmpitem->GetTemplate()->Block)
@@ -2683,8 +2690,35 @@ float Unit::GetUnitBlockChance(WeaponAttackType attType, Unit const* victim) con
                 chance = playerVictim->GetFloatValue(PLAYER_BLOCK_PERCENTAGE);
                 skillBonus = 0.04f * skillDiff;
             }
+       }*/
+        if (Player const* playerVictim = victim->ToPlayer())
+        {
+            if (playerVictim->CanBlock())
+            {
+                Item* offHandItem = playerVictim->GetUseableItemByPos(INVENTORY_SLOT_BAG_0, EQUIPMENT_SLOT_OFFHAND);
+           //     Item* mainHandItem = playerVictim->GetUseableItemByPos(INVENTORY_SLOT_BAG_0, EQUIPMENT_SLOT_MAINHAND);
+
+                bool canMonkBlockWithOffHandWeapon = false;
+
+                if (playerVictim->GetClass() == CLASS_MONK)
+                {
+                    canMonkBlockWithOffHandWeapon = (offHandItem &&
+                        (offHandItem->GetTemplate()->InventoryType == INVTYPE_WEAPON ||
+                            offHandItem->GetTemplate()->InventoryType == INVTYPE_WEAPONOFFHAND ||
+                            offHandItem->GetTemplate()->InventoryType == INVTYPE_WEAPONMAINHAND));
+                }
+                if ((offHandItem && !offHandItem->IsBroken() &&
+                    offHandItem->GetTemplate()->InventoryType == INVTYPE_SHIELD &&
+                    offHandItem->GetTemplate()->Block) || canMonkBlockWithOffHandWeapon)
+                {
+                    chance = playerVictim->GetFloatValue(PLAYER_BLOCK_PERCENTAGE);
+                    skillBonus = 0.04f * skillDiff;
+                }
+            }
         }
     }
+
+
     else
     {
         if (!victim->IsTotem() && !(victim->ToCreature()->GetCreatureTemplate()->flags_extra & CREATURE_FLAG_EXTRA_NO_BLOCK))
@@ -5446,8 +5480,24 @@ void Unit::SetPowerType(Powers new_powertype, bool sendUpdate/* = true*/)
 void Unit::UpdateDisplayPower()
 {
     Powers displayPower = POWER_MANA;
-    switch (GetShapeshiftForm())
+    switch (GetClass())
     {
+    case CLASS_WITCH:
+        displayPower = POWER_ENERGY;
+        // Fallthrough to handle shapeshift forms for CLASS_WITCH
+        break;
+    case CLASS_NECROMANCER:
+        displayPower = POWER_MANA;
+        break;
+    case CLASS_WARDEN:
+        displayPower = POWER_RAGE;
+        break;
+    case CLASS_MONK:
+        displayPower = POWER_ENERGY;
+        break;
+    default:
+        switch (GetShapeshiftForm())
+        {
         case FORM_GHOUL:
         case FORM_CAT:
             displayPower = POWER_ENERGY;
@@ -5481,11 +5531,12 @@ void Unit::UpdateDisplayPower()
                 {
                     if (pet->getPetType() == HUNTER_PET) // Hunter pets have focus
                         displayPower = POWER_FOCUS;
-                    else if (pet->IsPetGhoul() || pet->IsRisenAlly()) // DK pets have energy
+                    else if (pet->IsPetGhoul() || pet->IsRisenAlly() || pet->IsTreant() || pet->IsPetFetish())
                         displayPower = POWER_ENERGY;
                 }
             }
             break;
+        }
         }
     }
 
@@ -6493,7 +6544,7 @@ uint32 Unit::SpellDamageBonusDone(Unit* victim, SpellInfo const* spellProto, uin
     // Custom scripted damage
     switch (spellProto->SpellFamilyName)
     {
-        case SPELLFAMILY_DEATHKNIGHT:
+        case SPELLFAMILY_NECROMANCER:
             // Impurity (dummy effect)
             if (GetTypeId() == TYPEID_PLAYER)
             {
@@ -6714,7 +6765,7 @@ float Unit::SpellDamagePctDone(Unit* victim, SpellInfo const* spellProto, Damage
             // Rage of Rivendare
             case 7293:
             {
-                if (victim->GetAuraEffect(SPELL_AURA_PERIODIC_DAMAGE, SPELLFAMILY_DEATHKNIGHT, 0, 0x02000000, 0))
+                if (victim->GetAuraEffect(SPELL_AURA_PERIODIC_DAMAGE, SPELLFAMILY_NECROMANCER, 0, 0x02000000, 0))
                     AddPct(DoneTotalMod, (*i)->GetSpellInfo()->GetRank() * 2.0f);
                 break;
             }
@@ -6879,15 +6930,15 @@ float Unit::SpellDamagePctDone(Unit* victim, SpellInfo const* spellProto, Damage
                     if (victim->GetAuraEffect(SPELL_AURA_PERIODIC_DAMAGE, SPELLFAMILY_HUNTER, 0x00004000, 0, 0, GetGUID()))
                         AddPct(DoneTotalMod, aurEff->GetAmount());
             break;
-        case SPELLFAMILY_DEATHKNIGHT:
+        case SPELLFAMILY_NECROMANCER:
             // Improved Icy Touch
             if (spellProto->SpellFamilyFlags[0] & 0x2)
-                if (AuraEffect* aurEff = GetDummyAuraEffect(SPELLFAMILY_DEATHKNIGHT, 2721, 0))
+                if (AuraEffect* aurEff = GetDummyAuraEffect(SPELLFAMILY_NECROMANCER, 2721, 0))
                     AddPct(DoneTotalMod, aurEff->GetAmount());
 
             // Glacier Rot
             if (spellProto->SpellFamilyFlags[0] & 0x2 || spellProto->SpellFamilyFlags[1] & 0x6)
-                if (AuraEffect* aurEff = GetDummyAuraEffect(SPELLFAMILY_DEATHKNIGHT, 196, 0))
+                if (AuraEffect* aurEff = GetDummyAuraEffect(SPELLFAMILY_NECROMANCER, 196, 0))
                     if (victim->GetDiseasesByCaster(owner->GetGUID()) > 0)
                         AddPct(DoneTotalMod, aurEff->GetAmount());
             break;
@@ -7358,7 +7409,7 @@ uint32 Unit::SpellHealingBonusDone(Unit* victim, SpellInfo const* spellProto, ui
     // Custom scripted damage
     switch (spellProto->SpellFamilyName)
     {
-        case SPELLFAMILY_DEATHKNIGHT:
+        case SPELLFAMILY_NECROMANCER:
             // Impurity (dummy effect)
             if (GetTypeId() == TYPEID_PLAYER)
             {
@@ -7964,7 +8015,7 @@ uint32 Unit::MeleeDamageBonusDone(Unit* victim, uint32 pdamage, WeaponAttackType
             // Rage of Rivendare
             case 7293:
             {
-                if (victim->GetAuraEffect(SPELL_AURA_PERIODIC_DAMAGE, SPELLFAMILY_DEATHKNIGHT, 0, 0x02000000, 0))
+                if (victim->GetAuraEffect(SPELL_AURA_PERIODIC_DAMAGE, SPELLFAMILY_NECROMANCER, 0, 0x02000000, 0))
                     AddPct(DoneTotalMod, (*i)->GetSpellInfo()->GetRank() * 2.0f);
                 break;
             }
@@ -7999,10 +8050,10 @@ uint32 Unit::MeleeDamageBonusDone(Unit* victim, uint32 pdamage, WeaponAttackType
     {
         switch (spellProto->SpellFamilyName)
         {
-            case SPELLFAMILY_DEATHKNIGHT:
+            case SPELLFAMILY_NECROMANCER:
                 // Glacier Rot
                 if (spellProto->SpellFamilyFlags[0] & 0x2 || spellProto->SpellFamilyFlags[1] & 0x6)
-                    if (AuraEffect* aurEff = GetDummyAuraEffect(SPELLFAMILY_DEATHKNIGHT, 196, 0))
+                    if (AuraEffect* aurEff = GetDummyAuraEffect(SPELLFAMILY_NECROMANCER, 196, 0))
                         if (victim->GetDiseasesByCaster(owner->GetGUID()) > 0)
                             AddPct(DoneTotalMod, aurEff->GetAmount());
                 break;
@@ -12270,12 +12321,271 @@ uint32 Unit::GetModelForForm(ShapeshiftForm form, uint32 spellId) const
     {
         switch (form)
         {
-            case FORM_CAT:
-                // Based on Hair color
-                if (GetRace() == RACE_NIGHTELF)
+        case FORM_TRAVEL:
+            if (GetRace() == RACE_NIGHTELF)
+            {
+                if (player->HasAura(81017))
                 {
                     switch (player->GetHairColorId())
                     {
+                    case 7: // Violet
+                    case 8:
+                    case 9:
+                    case 3: // Light Bl
+                    case 0: // Green
+                    case 1: // Light Green
+                    case 6:
+                    case 2: // Dark Green
+                    case 5:
+                    case 4: // White
+                        return 42607;
+                    default: // original - Dark Blue
+                        return 42607;
+                    }
+                }
+                else
+                {
+                    switch (player->GetHairColorId())
+                    {
+                    case 7: // Violet
+                    case 8:
+                    case 3: // Light Blue
+                    case 5:
+                    case 0: // Green
+                    case 1: // Light Green
+                    case 2: // Dark Green
+                    case 6:
+                    case 4: // White
+                    case 9:
+                        return 918;
+                    default: // original - Dark Blue
+                        return 918;
+                    }
+                }
+            }
+            else if (GetRace() == RACE_TAUREN)
+            {
+                if (player->HasAura(81017))
+
+                    switch (player->GetSkinId())
+                    {
+                    case 12: // White
+                    case 13:
+                    case 14:
+                    case 18: // Completly White                 
+                    case 9: // Light Brown
+                    case 10:
+                    case 11:
+                    case 6: // Brown
+                    case 7:
+                    case 8:
+                    case 0: // Dark
+                    case 1:
+                    case 2:
+                    case 3: // Dark Grey
+                    case 4:
+                    case 15:
+                    case 16:
+                    case 17:
+                    case 5:
+                        return 42606;
+                    default: // original - Grey
+                        return 42606;
+                    }
+                else
+                    switch (player->GetSkinId())
+                    {
+                    case 12: // White
+                    case 13:
+                    case 14:
+                    case 18: // Completly White                 
+                    case 9: // Light Brown
+                    case 10:
+                    case 11:
+                    case 6: // Brown
+                    case 7:
+                    case 8:
+                    case 0: // Dark
+                    case 1:
+                    case 2:
+                    case 3: // Dark Grey
+                    case 4:
+                    case 15:
+                    case 16:
+                    case 17:
+                    case 5:
+                        return 918;
+                    default: // original - Grey
+                        return 918;
+                    }
+            }
+            else if (Player::TeamForRace(GetRace()) == ALLIANCE)
+                return 918;
+            else
+                return 918;
+
+
+
+        case FORM_MOONKIN:
+            if (GetRace() == RACE_NIGHTELF)
+            {
+                if (player->HasAura(81017))
+                {
+                    switch (player->GetHairColorId())
+                    {
+                    case 7: // Violet
+                    case 8:
+                    case 9:
+                    case 3: // Light Bl
+                    case 0: // Green
+                    case 1: // Light Green
+                    case 6:
+                    case 2: // Dark Green
+                    case 5:
+                    case 4: // White
+                        return 42602;
+                    default: // original - Dark Blue
+                        return 42602;
+                    }
+                }
+                else
+                {
+                    switch (player->GetHairColorId())
+                    {
+                    case 7: // Violet
+                    case 8:
+                    case 3: // Light Blue
+                    case 5:
+                    case 0: // Green
+                    case 1: // Light Green
+                    case 2: // Dark Green
+                    case 6:
+                    case 4: // White
+                    case 9:
+                        return 15375;
+                    default: // original - Dark Blue
+                        return 15375;
+                    }
+                }
+            }
+            else if (GetRace() == RACE_TAUREN)
+            {
+                if (player->HasAura(81017))
+
+                    switch (player->GetSkinId())
+                    {
+                    case 12: // White
+                    case 13:
+                    case 14:
+                    case 18: // Completly White                 
+                    case 9: // Light Brown
+                    case 10:
+                    case 11:
+                    case 6: // Brown
+                    case 7:
+                    case 8:
+                    case 0: // Dark
+                    case 1:
+                    case 2:
+                    case 3: // Dark Grey
+                    case 4:
+                    case 15:
+                    case 16:
+                    case 17:
+                    case 5:
+                        return 42605;
+                    default: // original - Grey
+                        return 42605;
+                    }
+                else
+                    switch (player->GetSkinId())
+                    {
+                    case 12: // White
+                    case 13:
+                    case 14:
+                    case 18: // Completly White                 
+                    case 9: // Light Brown
+                    case 10:
+                    case 11:
+                    case 6: // Brown
+                    case 7:
+                    case 8:
+                    case 0: // Dark
+                    case 1:
+                    case 2:
+                    case 3: // Dark Grey
+                    case 4:
+                    case 15:
+                    case 16:
+                    case 17:
+                    case 5:
+                        return 15375;
+                    default: // original - Grey
+                        return 15375;
+                    }
+            }
+            else if (Player::TeamForRace(GetRace()) == ALLIANCE)
+                return 15374;
+            else
+                return 15375;
+
+
+        case FORM_CAT:
+
+            // Based on Hair color                                              
+            if (GetRace() == RACE_NIGHTELF)
+            {
+                if (player->HasAura(81016))
+                {
+                    switch (player->GetHairColorId())
+                    {
+                    case 7: // Violet
+                    case 8:
+                        return 33660;
+                    case 9:
+                    case 3: // Light Blue
+                        return 33661;
+                    case 0: // Green
+                    case 1: // Light Green
+                        return 33662;
+                    case 6:
+                    case 2: // Dark Green
+                        return 33664;
+                    case 5:
+                    case 4: // White
+                        return 33663;
+                    default: // original - Dark Blue
+                        return 892;
+                    }
+                }
+                else
+                    if (player->HasAura(81017))
+                    {
+                        switch (player->GetHairColorId())
+                        {
+                        case 7: // Violet
+                        case 8:
+                            return 42591;
+                        case 3: // Light Blue
+                        case 5:
+                            return 42593;
+                        case 0: // Green
+                        case 1: // Light Green
+                            return 42595;
+                        case 2: // Dark Green
+                        case 6:
+                            return 42592;
+                        case 4: // White
+                        case 9:
+                            return 42594;
+                        default: // original - Dark Blue
+                            return 892;
+                        }
+
+                    }
+                    else
+                        switch (player->GetHairColorId())
+                        {
                         case 7: // Violet
                         case 8:
                             return 29405;
@@ -12289,17 +12599,159 @@ uint32 Unit::GetModelForForm(ShapeshiftForm form, uint32 spellId) const
                             return 29408;
                         default: // original - Dark Blue
                             return 892;
+                        }
+            }
+            else if (GetRace() == RACE_WORGEN)
+            {
+                if (player->HasAura(81016))
+                {
+                    switch (player->GetHairColorId())
+                    {
+                    case 7: // Violet
+                    case 8:
+                        return 33660;
+                    case 9:
+                    case 3: // Light Blue
+                        return 33661;
+                    case 0: // Green
+                    case 1: // Light Green
+                        return 33662;
+                    case 6:
+                    case 2: // Dark Green
+                        return 33664;
+                    case 5:
+                    case 4: // White
+                        return 33663;
+                    default: // original - Dark Blue
+                        return 892;
                     }
                 }
-                // Based on Skin color
-                else if (GetRace() == RACE_TAUREN)
-                {
-                    uint8 skinColor = player->GetSkinId();
-                    // Male
-                    if (GetNativeGender() == GENDER_MALE)
+                else
+                    if (player->HasAura(81017))
                     {
-                        switch (skinColor)
+                        switch (player->GetHairColorId())
                         {
+                        case 7: // Violet
+                        case 8:
+                            return 42591;
+                        case 3: // Light Blue
+                        case 5:
+                            return 42593;
+                        case 0: // Green
+                        case 1: // Light Green
+                            return 42595;
+                        case 2: // Dark Green
+                        case 6:
+                            return 42592;
+                        case 4: // White
+                        case 9:
+                            return 42594;
+                        default: // original - Dark Blue
+                            return 892;
+                        }
+
+                    }
+                    else
+                        switch (player->GetHairColorId())
+                        {
+                        case 7: // Violet
+                        case 8:
+                            return 29405;
+                        case 3: // Light Blue
+                            return 29406;
+                        case 0: // Green
+                        case 1: // Light Green
+                        case 2: // Dark Green
+                            return 29407;
+                        case 4: // White
+                            return 29408;
+                        default: // original - Dark Blue
+                            return 892;
+                        }
+            }
+            // Based on Skin color
+            else if (GetRace() == RACE_TAUREN)
+            {
+                // uint8 skinColor = player->GetSkinId();
+                 // Male
+                if (GetNativeGender() == GENDER_MALE)
+                {
+                    if (player->HasAura(81016))
+                    {
+
+                        //   uint8 skinColor = player->GetSkinId();
+
+                        switch (player->GetSkinId())
+                        {
+                        case 12: // White
+                        case 13:
+                        case 14:
+                        case 18: // Completly White
+                            return 33668;
+                        case 9: // Light Brown
+                        case 10:
+                        case 11:
+                            return 33667;
+                        case 6: // Brown
+                        case 7:
+                        case 8:
+                            return 33666;
+                        case 0: // Dark
+                        case 1:
+                        case 2:
+                        case 3: // Dark Grey
+                            return 33669;
+                        case 4:
+                        case 15:
+                        case 16:
+                        case 17:
+                        case 5:
+                            return 33665;
+                        default: // original - Grey
+                            return 8571;
+                        }
+
+                    }
+                    else
+                        if (player->HasAura(81017))
+                        {
+
+                            //   uint8 skinColor = player->GetSkinId();
+
+                            switch (player->GetSkinId())
+                            {
+                            case 12: // White
+                            case 13:
+                            case 14:
+                            case 18: // Completly White
+                                return 42594;
+                            case 9: // Light Brown
+                            case 10:
+                            case 17:
+                            case 11:
+                                return 42592;
+                            case 6: // Brown
+                            case 7:
+                            case 8:
+                                return 42593;
+                            case 0: // Dark
+                            case 1:
+                            case 2:
+                            case 3: // Dark Grey
+                                return 42591;
+                            case 4:
+                            case 15:
+                            case 5:
+                            case 16:
+                                return 42595;
+                            default: // original - Grey
+                                return 8571;
+                            }
+
+                        }
+                        else
+                            switch (player->GetSkinId())
+                            {
                             case 12: // White
                             case 13:
                             case 14:
@@ -12322,62 +12774,309 @@ uint32 Unit::GetModelForForm(ShapeshiftForm form, uint32 spellId) const
                                 return 29412;
                             default: // original - Grey
                                 return 8571;
-                        }
-                    }
-                    // Female
-                    else switch (skinColor)
+                            }
+                }
+                else if (GetNativeGender() == GENDER_FEMALE)
+                {
+                    if (player->HasAura(81016))
                     {
-                        case 10: // White
-                            return 29409;
-                        case 6: // Light Brown
+
+                        // uint8 skinColor = player->GetSkinId();
+
+                        switch (player->GetSkinId())
+                        {
+
+                        case 10: // Completly White
+                        case 9:
+                            return 33668;
+                        case 1: // Light Brown
+                        case 8:
+                            return 33667;
+                        case 6: // Brown
                         case 7:
-                            return 29410;
-                        case 4: // Brown
-                        case 5:
-                            return 29411;
+                            return 33666;
                         case 0: // Dark
-                        case 1:
+
                         case 2:
-                        case 3:
-                            return 29412;
+                        case 3: // Dark Grey
+                            return 33669;
+                        case 4:
+                        case 5:
+                            return 33665;
                         default: // original - Grey
                             return 8571;
+                        }
+
                     }
+                    else
+                        if (player->HasAura(81017))
+                        {
+
+                            // uint8 skinColor = player->GetSkinId();
+
+                            switch (player->GetSkinId())
+                            {
+
+                            case 10: // Completly White
+                            case 9:
+                                return 42594;
+                            case 1: // Light Brown
+                            case 8:
+                                return 42593;
+                            case 6: // Brown
+                            case 7:
+                                return 42592;
+                            case 0: // Dark
+
+                            case 2:
+                            case 3: // Dark Grey
+                                return 42591;
+                            case 4:
+                            case 5:
+                                return 42595;
+                            default: // original - Grey
+                                return 8571;
+                            }
+
+                        }
+                        else
+                            switch (player->GetSkinId())
+                            {
+                            case 10: // White
+                                return 29409;
+                            case 6: // Light Brown
+                            case 7:
+                                return 29410;
+                            case 4: // Brown
+                            case 5:
+                                return 29411;
+                            case 0: // Dark
+                            case 1:
+                            case 2:
+                            case 3:
+                                return 29412;
+                            default: // original - Grey
+                                return 8571;
+                            }
                 }
-                else if (Player::TeamForRace(GetRace()) == ALLIANCE)
-                    return 892;
-                else
-                    return 8571;
-            case FORM_DIREBEAR:
-            case FORM_BEAR:
-                // Based on Hair color
-                if (GetRace() == RACE_NIGHTELF)
+            }
+            else if (Player::TeamForRace(GetRace()) == ALLIANCE)
+                return 892;
+            else
+                return 8571;
+        case FORM_DIREBEAR:
+        case FORM_BEAR:
+            // Based on Hair color
+
+
+            if (GetRace() == RACE_NIGHTELF)
+            {
+                if (player->HasAura(81015))
                 {
                     switch (player->GetHairColorId())
                     {
-                        case 0: // Green
-                        case 1: // Light Green
-                        case 2: // Dark Green
-                            return 29413; // 29415?
-                        case 6: // Dark Blue
-                            return 29414;
-                        case 4: // White
-                            return 29416;
-                        case 3: // Light Blue
-                            return 29417;
-                        default: // original - Violet
-                            return 2281;
+                    case 0: // Green
+                    case 1: // Light Green
+                        return 33654;
+                    case 2: // Dark Green
+                    case 9:
+                        return 33650; // 29415?
+                    case 6: // Dark Blue
+                    case 5:
+                        return 33651;
+                    case 4: // White
+                    case 8:
+                        return 33652;
+                    case 3: // Light Blue
+                    case 7:
+                        return 33653;
+                    default: // original - Violet
+                        return 2281;
                     }
                 }
-                // Based on Skin color
-                else if (GetRace() == RACE_TAUREN)
+                else if (player->HasAura(81017))
                 {
-                    uint8 skinColor = player->GetSkinId();
-                    // Male
-                    if (GetNativeGender() == GENDER_MALE)
+                    switch (player->GetHairColorId())
                     {
-                        switch (skinColor)
+                    case 0: // Green
+                    case 1: // Light Green
+                        return 42600;
+                    case 2: // Dark Green
+                    case 5:
+                        return 42597; // 29415?
+                    case 6: // Dark Blue
+                    case 7:
+                        return 42596;
+                    case 4: // White
+                    case 8:
+                        return 42598;
+                    case 3: // Light Blue
+                    case 9:
+                        return 42599;
+                    default: // original - Violet
+                        return 2281;
+                    }
+                }
+                else
+                    switch (player->GetHairColorId())
+                    {
+                    case 0: // Green
+                    case 1: // Light Green
+                    case 2: // Dark Green
+                        return 29413; // 29415?
+                    case 6: // Dark Blue
+                        return 29414;
+                    case 4: // White
+                        return 29416;
+                    case 3: // Light Blue
+                        return 29417;
+                    default: // original - Violet
+                        return 2281;
+                    }
+            }
+            else if (GetRace() == RACE_WORGEN)
+            {
+                if (player->HasAura(81015))
+                {
+                    switch (player->GetHairColorId())
+                    {
+                    case 0: // Green
+                    case 1: // Light Green
+                        return 33654;
+                    case 2: // Dark Green
+                    case 9:
+                        return 33650; // 29415?
+                    case 6: // Dark Blue
+                    case 5:
+                        return 33651;
+                    case 4: // White
+                    case 8:
+                        return 33652;
+                    case 3: // Light Blue
+                    case 7:
+                        return 33653;
+                    default: // original - Violet
+                        return 2281;
+                    }
+                }
+                else if (player->HasAura(81017))
+                {
+                    switch (player->GetHairColorId())
+                    {
+                    case 0: // Green
+                    case 1: // Light Green
+                        return 42600;
+                    case 2: // Dark Green
+                    case 5:
+                        return 42597; // 29415?
+                    case 6: // Dark Blue
+                    case 7:
+                        return 42596;
+                    case 4: // White
+                    case 8:
+                        return 42598;
+                    case 3: // Light Blue
+                    case 9:
+                        return 42599;
+                    default: // original - Violet
+                        return 2281;
+                    }
+                }
+                else
+                    switch (player->GetHairColorId())
+                    {
+                    case 0: // Green
+                    case 1: // Light Green
+                    case 2: // Dark Green
+                        return 29413; // 29415?
+                    case 6: // Dark Blue
+                        return 29414;
+                    case 4: // White
+                        return 29416;
+                    case 3: // Light Blue
+                        return 29417;
+                    default: // original - Violet
+                        return 2281;
+                    }
+            }
+
+            // Based on Skin color
+            else if (GetRace() == RACE_TAUREN)
+            {
+                // uint8 skinColor = player->GetSkinId();
+                 // Male
+                if (GetNativeGender() == GENDER_MALE)
+                {
+                    if (player->GetAura(81015))
+
+                    {
+                        switch (player->GetSkinId())
                         {
+                        case 0: // Dark (Black)
+                        case 1:
+                        case 6:
+                        case 2:
+                            return 33655;
+                        case 3: // White
+                        case 4:
+                        case 5:
+                        case 12:
+                        case 7:
+                        case 13:
+                        case 14:
+                            return 33656;
+                        case 9: // Light Brown/Grey
+                        case 10:
+                        case 8:
+                        case 11:
+                            return 33657;
+                        case 15:
+                        case 16:
+                        case 17:
+                            return 33658;
+                        case 18: // Completly White
+                            return 33659;
+                        default: // original - Brown
+                            return 2289;
+                        }
+                    }
+                    else
+                        if (player->GetAura(81017))
+
+                        {
+                            switch (player->GetSkinId())
+                            {
+                            case 0: // Dark (Black)
+                            case 1:
+                            case 2:
+                            case 7:
+                                return 42596;
+                            case 3: // White
+                            case 4:
+                            case 5:
+                            case 12:
+                            case 13:
+                            case 14:
+                                return 42598;
+                            case 9: // Light Brown/Grey
+                            case 10:
+                            case 8:
+                            case 11:
+                                return 42597;
+                            case 15:
+                            case 6:
+                            case 16:
+                            case 17:
+                                return 42600;
+                            case 18: // Completly White
+                                return 42599;
+                            default: // original - Brown
+                                return 2289;
+                            }
+                        }
+                        else
+                            switch (player->GetSkinId())
+                            {
                             case 0: // Dark (Black)
                             case 1:
                             case 2:
@@ -12400,42 +13099,95 @@ uint32 Unit::GetModelForForm(ShapeshiftForm form, uint32 spellId) const
                                 return 29421;
                             default: // original - Brown
                                 return 2289;
-                        }
-                    }
-                    // Female
-                    else switch (skinColor)
+                            }
+                }
+                if (GetNativeGender() == GENDER_FEMALE)
+                {
+                    if (player->GetAura(81015))
                     {
+                        switch (player->GetSkinId())
+                        {
                         case 0: // Dark (Black)
                         case 1:
-                            return 29418;
-                        case 2: // White
-                        case 3:
-                            return 29419;
-                        case 6: // Light Brown/Grey
-                        case 7:
+                            return 33657;
+                        case 2:
                         case 8:
-                        case 9:
-                            return 29420;
-                        case 10: // Completly White
-                            return 29421;
+                            return 33655;
+                        case 3: // White
+                        case 4:
+                            return 33659;
+                        case 5:
+                        case 7:
+                            return 33656;
+                        case 9: // Light Brown/Grey
+                        case 10:
+                            return 33658;
+
                         default: // original - Brown
                             return 2289;
+                        }
                     }
+                    else
+                        if (player->GetAura(81017))
+                        {
+                            switch (player->GetSkinId())
+                            {
+                            case 0: // Dark (Black)
+                            case 1:
+                                return 42596;
+                            case 2:
+                            case 8:
+                                return 42598;
+                            case 3: // White
+                            case 4:
+                                return 42599;
+                            case 5:
+                            case 7:
+                                return 42600;
+                            case 9: // Light Brown/Grey
+                            case 10:
+                                return 42597;
+                            default: // original - Brown
+                                return 2289;
+                            }
+                        }
+                        else
+                            switch (player->GetSkinId())
+                            {
+                            case 0: // Dark (Black)
+                            case 1:
+                                return 29418;
+                            case 2: // White
+                            case 3:
+                                return 29419;
+                            case 6: // Light Brown/Grey
+                            case 7:
+                            case 8:
+                            case 9:
+                                return 29420;
+                            case 10: // Completly White
+                                return 29421;
+                            default: // original - Brown
+                                return 2289;
+                            }
                 }
-                else if (Player::TeamForRace(GetRace()) == ALLIANCE)
-                    return 2281;
-                else
-                    return 2289;
-            case FORM_FLIGHT:
-                if (Player::TeamForRace(GetRace()) == ALLIANCE)
-                    return 20857;
-                return 20872;
-            case FORM_FLIGHT_EPIC:
-                if (Player::TeamForRace(GetRace()) == ALLIANCE)
-                    return 21243;
-                return 21244;
-            default:
-                break;
+            }
+
+
+            else if (Player::TeamForRace(GetRace()) == ALLIANCE)
+                return 2281;
+            else
+                return 2289;
+        case FORM_FLIGHT:
+            if (Player::TeamForRace(GetRace()) == ALLIANCE)
+                return 20857;
+            return 20872;
+        case FORM_FLIGHT_EPIC:
+            if (Player::TeamForRace(GetRace()) == ALLIANCE)
+                return 21243;
+            return 21244;
+        default:
+            break;
         }
     }
 

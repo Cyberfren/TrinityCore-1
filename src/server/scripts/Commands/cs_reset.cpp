@@ -138,9 +138,9 @@ public:
         uint8 oldLevel = target->GetLevel();
 
         // set starting level
-        uint32 startLevel = target->GetClass() != CLASS_DEATH_KNIGHT
+        uint32 startLevel = target->GetClass() != CLASS_NECROMANCER
             ? sWorld->getIntConfig(CONFIG_START_PLAYER_LEVEL)
-            : sWorld->getIntConfig(CONFIG_START_DEATH_KNIGHT_PLAYER_LEVEL);
+            : sWorld->getIntConfig(CONFIG_START_PLAYER_LEVEL);
 
         target->_ApplyAllLevelScaleItemMods(false);
         target->SetLevel(startLevel);

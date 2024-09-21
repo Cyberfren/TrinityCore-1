@@ -1461,7 +1461,7 @@ void Aura::HandleAuraSpecificMods(AuraApplication const* aurApp, Unit* caster, b
                     if (target->HasAura(58039)) // Glyph of Blurred Speed
                         target->CastSpell(target, 61922, true); // Sprint (waterwalk)
                 break;
-            case SPELLFAMILY_DEATHKNIGHT:
+            case SPELLFAMILY_NECROMANCER:
                 if (!caster)
                     break;
                 // Frost Fever and Blood Plague
@@ -1689,7 +1689,7 @@ void Aura::HandleAuraSpecificMods(AuraApplication const* aurApp, Unit* caster, b
                 if (GetId() == 25771 && target->HasAura(61988) && !target->HasAura(61987))
                     target->RemoveAura(61988);
                 break;
-            case SPELLFAMILY_DEATHKNIGHT:
+            case SPELLFAMILY_NECROMANCER:
                 // Blood of the North
                 // Reaping
                 // Death Rune Mastery
@@ -1699,7 +1699,7 @@ void Aura::HandleAuraSpecificMods(AuraApplication const* aurApp, Unit* caster, b
                         break;
                     if (target->GetTypeId() != TYPEID_PLAYER)
                         break;
-                    if (target->ToPlayer()->GetClass() != CLASS_DEATH_KNIGHT)
+                    if (target->ToPlayer()->GetClass() != CLASS_NECROMANCER)
                         break;
 
                      // aura removed - remove death runes

@@ -77,12 +77,44 @@ enum HunterSpells
     SPELL_HUNTER_WYVERN_STING_DOT_R3                = 24135,
     SPELL_HUNTER_WYVERN_STING_DOT_R4                = 27069,
     SPELL_HUNTER_WYVERN_STING_DOT_R5                = 49009,
-    SPELL_HUNTER_WYVERN_STING_DOT_R6                = 49010
+    SPELL_HUNTER_WYVERN_STING_DOT_R6                = 49010,
+    SPELL_HUNTER_HOOKSHOT_SWAP                      = 80422,
+    SPELL_HUNTER_HOOOKSHOT_SWAP_INITIAL             = 80411,
+    SPELL_HUNTER_PRIMAL_INSTINCTS                        = 80013
 };
 
 enum HunterSpellIcons
 {
     SPELL_ICON_HUNTER_PET_IMPROVED_COWER            = 958
+};
+
+
+
+class spell_hun_hookshot_swap_initial : public SpellScript
+{
+    PrepareSpellScript(spell_hun_hookshot_swap_initial);
+
+    SpellCastResult CheckCast()
+    {
+        Unit* caster = GetCaster();
+        Unit* target = GetExplTargetUnit();
+        if (target && target->GetTypeId() == TYPEID_PLAYER)
+            if (caster->GetDistance(target) < 8.f)
+                return SPELL_FAILED_TOO_CLOSE;
+
+        return SPELL_CAST_OK;
+    }
+
+    void HandleDummy(SpellEffIndex /*effIndex*/)
+    {
+        GetCaster()->CastSpell(GetHitUnit(), SPELL_HUNTER_HOOKSHOT_SWAP, true);
+    }
+
+    void Register() override
+    {
+        OnCheckCast += SpellCheckCastFn(spell_hun_hookshot_swap_initial::CheckCast);
+        OnEffectHitTarget += SpellEffectFn(spell_hun_hookshot_swap_initial::HandleDummy, EFFECT_0, SPELL_EFFECT_DUMMY);
+    }
 };
 
 // 13161 - Aspect of the Beast
@@ -1401,4 +1433,6 @@ void AddSC_hunter_spell_scripts()
     RegisterSpellScript(spell_hun_t9_4p_bonus);
     RegisterSpellScript(spell_hun_viper_attack_speed);
     RegisterSpellScript(spell_hun_wyvern_sting);
+    RegisterSpellScript(spell_hun_hookshot_swap_initial);
+
 }

@@ -31,17 +31,23 @@ TC_API_EXPORT EnumText EnumUtils<Races>::ToString(Races value)
 {
     switch (value)
     {
-        case RACE_HUMAN: return { "RACE_HUMAN", "Human", "" };
-        case RACE_ORC: return { "RACE_ORC", "Orc", "" };
-        case RACE_DWARF: return { "RACE_DWARF", "Dwarf", "" };
-        case RACE_NIGHTELF: return { "RACE_NIGHTELF", "Night Elf", "" };
-        case RACE_UNDEAD_PLAYER: return { "RACE_UNDEAD_PLAYER", "Undead", "" };
-        case RACE_TAUREN: return { "RACE_TAUREN", "Tauren", "" };
-        case RACE_GNOME: return { "RACE_GNOME", "Gnome", "" };
-        case RACE_TROLL: return { "RACE_TROLL", "Troll", "" };
-        case RACE_BLOODELF: return { "RACE_BLOODELF", "Blood Elf", "" };
-        case RACE_DRAENEI: return { "RACE_DRAENEI", "Draenei", "" };
-        default: throw std::out_of_range("value");
+    case RACE_HUMAN: return { "RACE_HUMAN", "Human", "" };
+    case RACE_ORC: return { "RACE_ORC", "Orc", "" };
+    case RACE_DWARF: return { "RACE_DWARF", "Dwarf", "" };
+    case RACE_NIGHTELF: return { "RACE_NIGHTELF", "Night Elf", "" };
+    case RACE_UNDEAD_PLAYER: return { "RACE_UNDEAD_PLAYER", "Undead", "" };
+    case RACE_TAUREN: return { "RACE_TAUREN", "Tauren", "" };
+    case RACE_GNOME: return { "RACE_GNOME", "Gnome", "" };
+    case RACE_TROLL: return { "RACE_TROLL", "Troll", "" };
+    case RACE_BLOODELF: return { "RACE_BLOODELF", "Blood Elf", "" };
+    case RACE_DRAENEI: return { "RACE_DRAENEI", "Draenei", "" };
+    case RACE_HIGHELF: return { "RACE_HIGHELF", "High Elf", "" };
+    case RACE_DRAGONMAW: return { "RACE_DRAGONMAW", "Dragonmaw", "" };
+    case RACE_REVANTUSK: return { "RACE_REVANTUSK", "Revantusk", "" };
+    case RACE_WILDHAMMER: return { "RACE_WILDHAMMER", "Wildhammer", "" };
+    case RACE_DARKIRON: return { "RACE_DARKIRON", "Dark Iron", "" };
+    case RACE_WORGEN: return { "RACE_WORGEN", "Worgen", "" };
+    default: throw std::out_of_range("value");
     }
 }
 
@@ -53,17 +59,23 @@ TC_API_EXPORT Races EnumUtils<Races>::FromIndex(size_t index)
 {
     switch (index)
     {
-        case 0: return RACE_HUMAN;
-        case 1: return RACE_ORC;
-        case 2: return RACE_DWARF;
-        case 3: return RACE_NIGHTELF;
-        case 4: return RACE_UNDEAD_PLAYER;
-        case 5: return RACE_TAUREN;
-        case 6: return RACE_GNOME;
-        case 7: return RACE_TROLL;
-        case 8: return RACE_BLOODELF;
-        case 9: return RACE_DRAENEI;
-        default: throw std::out_of_range("index");
+    case 0: return RACE_HUMAN;
+    case 1: return RACE_ORC;
+    case 2: return RACE_DWARF;
+    case 3: return RACE_NIGHTELF;
+    case 4: return RACE_UNDEAD_PLAYER;
+    case 5: return RACE_TAUREN;
+    case 6: return RACE_GNOME;
+    case 7: return RACE_TROLL;
+    case 8: return RACE_BLOODELF;
+    case 9: return RACE_DRAENEI;
+    case 10: return RACE_HIGHELF;
+    case 11: return RACE_DRAGONMAW;
+    case 12: return RACE_REVANTUSK;
+    case 13: return RACE_WILDHAMMER;
+    case 14: return RACE_DARKIRON;
+    case 15: return RACE_WORGEN;
+    default: throw std::out_of_range("index");
     }
 }
 
@@ -72,17 +84,23 @@ TC_API_EXPORT size_t EnumUtils<Races>::ToIndex(Races value)
 {
     switch (value)
     {
-        case RACE_HUMAN: return 0;
-        case RACE_ORC: return 1;
-        case RACE_DWARF: return 2;
-        case RACE_NIGHTELF: return 3;
-        case RACE_UNDEAD_PLAYER: return 4;
-        case RACE_TAUREN: return 5;
-        case RACE_GNOME: return 6;
-        case RACE_TROLL: return 7;
-        case RACE_BLOODELF: return 8;
-        case RACE_DRAENEI: return 9;
-        default: throw std::out_of_range("value");
+    case RACE_HUMAN: return 0;
+    case RACE_ORC: return 1;
+    case RACE_DWARF: return 2;
+    case RACE_NIGHTELF: return 3;
+    case RACE_UNDEAD_PLAYER: return 4;
+    case RACE_TAUREN: return 5;
+    case RACE_GNOME: return 6;
+    case RACE_TROLL: return 7;
+    case RACE_BLOODELF: return 8;
+    case RACE_DRAENEI: return 9;
+    case RACE_HIGHELF: return 10;
+    case RACE_DRAGONMAW: return 11;
+    case RACE_REVANTUSK: return 12;
+    case RACE_WILDHAMMER: return 13;
+    case RACE_DARKIRON: return 14;
+    case RACE_WORGEN: return 15;
+    default: throw std::out_of_range("value");
     }
 }
 
@@ -94,17 +112,21 @@ TC_API_EXPORT EnumText EnumUtils<Classes>::ToString(Classes value)
 {
     switch (value)
     {
-        case CLASS_WARRIOR: return { "CLASS_WARRIOR", "Warrior", "" };
-        case CLASS_PALADIN: return { "CLASS_PALADIN", "Paladin", "" };
-        case CLASS_HUNTER: return { "CLASS_HUNTER", "Hunter", "" };
-        case CLASS_ROGUE: return { "CLASS_ROGUE", "Rogue", "" };
-        case CLASS_PRIEST: return { "CLASS_PRIEST", "Priest", "" };
-        case CLASS_DEATH_KNIGHT: return { "CLASS_DEATH_KNIGHT", "Death Knight", "" };
-        case CLASS_SHAMAN: return { "CLASS_SHAMAN", "Shaman", "" };
-        case CLASS_MAGE: return { "CLASS_MAGE", "Mage", "" };
-        case CLASS_WARLOCK: return { "CLASS_WARLOCK", "Warlock", "" };
-        case CLASS_DRUID: return { "CLASS_DRUID", "Druid", "" };
-        default: throw std::out_of_range("value");
+    case CLASS_WARRIOR: return { "CLASS_WARRIOR", "Warrior", "" };
+    case CLASS_PALADIN: return { "CLASS_PALADIN", "Paladin", "" };
+    case CLASS_HUNTER: return { "CLASS_HUNTER", "Hunter", "" };
+    case CLASS_ROGUE: return { "CLASS_ROGUE", "Rogue", "" };
+    case CLASS_PRIEST: return { "CLASS_PRIEST", "Priest", "" };
+    case CLASS_NECROMANCER: return { "CLASS_NECROMANCER", "Necromancer", "" };
+    case CLASS_SHAMAN: return { "CLASS_SHAMAN", "Shaman", "" };
+    case CLASS_MAGE: return { "CLASS_MAGE", "Mage", "" };
+    case CLASS_WARLOCK: return { "CLASS_WARLOCK", "Warlock", "" };
+    case CLASS_DRUID: return { "CLASS_DRUID", "Druid", "" };
+    case CLASS_WITCH: return { "CLASS_WITCH", "Witch", "" };
+    case CLASS_WARDEN: return { "CLASS_WARDEN", "Warden", "" };
+    case CLASS_MONK: return { "CLASS_MONK", "Monk", "" };
+    case CLASS_BARD: return { "CLASS_BARD", "Bard", "" };
+    default: throw std::out_of_range("value");
     }
 }
 
@@ -116,17 +138,21 @@ TC_API_EXPORT Classes EnumUtils<Classes>::FromIndex(size_t index)
 {
     switch (index)
     {
-        case 0: return CLASS_WARRIOR;
-        case 1: return CLASS_PALADIN;
-        case 2: return CLASS_HUNTER;
-        case 3: return CLASS_ROGUE;
-        case 4: return CLASS_PRIEST;
-        case 5: return CLASS_DEATH_KNIGHT;
-        case 6: return CLASS_SHAMAN;
-        case 7: return CLASS_MAGE;
-        case 8: return CLASS_WARLOCK;
-        case 9: return CLASS_DRUID;
-        default: throw std::out_of_range("index");
+    case 0: return CLASS_WARRIOR;
+    case 1: return CLASS_PALADIN;
+    case 2: return CLASS_HUNTER;
+    case 3: return CLASS_ROGUE;
+    case 4: return CLASS_PRIEST;
+    case 5: return CLASS_NECROMANCER;
+    case 6: return CLASS_SHAMAN;
+    case 7: return CLASS_MAGE;
+    case 8: return CLASS_WARLOCK;
+    case 9: return CLASS_DRUID;
+    case 10:  return CLASS_WITCH;
+    case 11:  return CLASS_WARDEN;
+    case 12:  return CLASS_MONK;
+    case 13:  return CLASS_BARD;
+    default: throw std::out_of_range("index");
     }
 }
 
@@ -135,20 +161,23 @@ TC_API_EXPORT size_t EnumUtils<Classes>::ToIndex(Classes value)
 {
     switch (value)
     {
-        case CLASS_WARRIOR: return 0;
-        case CLASS_PALADIN: return 1;
-        case CLASS_HUNTER: return 2;
-        case CLASS_ROGUE: return 3;
-        case CLASS_PRIEST: return 4;
-        case CLASS_DEATH_KNIGHT: return 5;
-        case CLASS_SHAMAN: return 6;
-        case CLASS_MAGE: return 7;
-        case CLASS_WARLOCK: return 8;
-        case CLASS_DRUID: return 9;
-        default: throw std::out_of_range("value");
+    case CLASS_WARRIOR: return 0;
+    case CLASS_PALADIN: return 1;
+    case CLASS_HUNTER: return 2;
+    case CLASS_ROGUE: return 3;
+    case CLASS_PRIEST: return 4;
+    case CLASS_NECROMANCER: return 5;
+    case CLASS_SHAMAN: return 6;
+    case CLASS_MAGE: return 7;
+    case CLASS_WARLOCK: return 8;
+    case CLASS_DRUID: return 9;
+    case CLASS_WITCH: return 10;
+    case CLASS_WARDEN: return 11;
+    case CLASS_MONK: return 12;
+    case CLASS_BARD: return 13;
+    default: throw std::out_of_range("value");
     }
 }
-
 /**************************************************************\
 |* data for enum 'Powers' in 'SharedDefines.h' auto-generated *|
 \**************************************************************/
@@ -165,6 +194,8 @@ TC_API_EXPORT EnumText EnumUtils<Powers>::ToString(Powers value)
         case POWER_HAPPINESS: return { "POWER_HAPPINESS", "Happiness", "" };
         case POWER_RUNE: return { "POWER_RUNE", "Runes", "" };
         case POWER_RUNIC_POWER: return { "POWER_RUNIC_POWER", "Runic Power", "" };
+      //  case POWER_MUSIC_POWER: return { "POWER_MUSIC_POWER", "Music Power", "" };
+     //   case POWER_CHI_POWER: return { "POWER_CHI_POWER", "Chi", "" };
         default: throw std::out_of_range("value");
     }
 }
@@ -185,6 +216,8 @@ TC_API_EXPORT Powers EnumUtils<Powers>::FromIndex(size_t index)
         case 5: return POWER_HAPPINESS;
         case 6: return POWER_RUNE;
         case 7: return POWER_RUNIC_POWER;
+        //case 8: return POWER_MUSIC_POWER;
+      //  case 9: return POWER_CHI_POWER;
         default: throw std::out_of_range("index");
     }
 }
@@ -202,6 +235,8 @@ TC_API_EXPORT size_t EnumUtils<Powers>::ToIndex(Powers value)
         case POWER_HAPPINESS: return 5;
         case POWER_RUNE: return 6;
         case POWER_RUNIC_POWER: return 7;
+       // case POWER_MUSIC_POWER: return 8;
+      //  case POWER_CHI_POWER: return 9;
         default: throw std::out_of_range("value");
     }
 }
@@ -1918,6 +1953,7 @@ TC_API_EXPORT EnumText EnumUtils<AuraStateType>::ToString(AuraStateType value)
         case AURA_STATE_UNKNOWN19: return { "AURA_STATE_UNKNOWN19", "AURA_STATE_UNKNOWN19", "|" };
         case AURA_STATE_UNKNOWN22: return { "AURA_STATE_UNKNOWN22", "AURA_STATE_UNKNOWN22", "C  t| varius spells (63884, 50240)" };
         case AURA_STATE_HEALTH_ABOVE_75_PERCENT: return { "AURA_STATE_HEALTH_ABOVE_75_PERCENT", "AURA_STATE_HEALTH_ABOVE_75_PERCENT", "C   |" };
+        case AURA_STATE_SOUL_CRUSH: return { "AURA_STATE_SOUL_CRUSH", "AURA_STATE_SOUL_CRUSH", "T |" };
         default: throw std::out_of_range("value");
     }
 }
@@ -1948,6 +1984,7 @@ TC_API_EXPORT AuraStateType EnumUtils<AuraStateType>::FromIndex(size_t index)
         case 15: return AURA_STATE_UNKNOWN19;
         case 16: return AURA_STATE_UNKNOWN22;
         case 17: return AURA_STATE_HEALTH_ABOVE_75_PERCENT;
+        case 18: return AURA_STATE_SOUL_CRUSH;
         default: throw std::out_of_range("index");
     }
 }
@@ -1975,6 +2012,7 @@ TC_API_EXPORT size_t EnumUtils<AuraStateType>::ToIndex(AuraStateType value)
         case AURA_STATE_UNKNOWN19: return 15;
         case AURA_STATE_UNKNOWN22: return 16;
         case AURA_STATE_HEALTH_ABOVE_75_PERCENT: return 17;
+        case AURA_STATE_SOUL_CRUSH: return 18;
         default: throw std::out_of_range("value");
     }
 }
@@ -3001,22 +3039,27 @@ TC_API_EXPORT EnumText EnumUtils<SpellFamilyNames>::ToString(SpellFamilyNames va
 {
     switch (value)
     {
-        case SPELLFAMILY_GENERIC: return { "SPELLFAMILY_GENERIC", "Generic", "" };
-        case SPELLFAMILY_UNK1: return { "SPELLFAMILY_UNK1", "Unk1 (events, holidays, ...)", "" };
-        case SPELLFAMILY_MAGE: return { "SPELLFAMILY_MAGE", "Mage", "" };
-        case SPELLFAMILY_WARRIOR: return { "SPELLFAMILY_WARRIOR", "Warrior", "" };
-        case SPELLFAMILY_WARLOCK: return { "SPELLFAMILY_WARLOCK", "Warlock", "" };
-        case SPELLFAMILY_PRIEST: return { "SPELLFAMILY_PRIEST", "Priest", "" };
-        case SPELLFAMILY_DRUID: return { "SPELLFAMILY_DRUID", "Druid", "" };
-        case SPELLFAMILY_ROGUE: return { "SPELLFAMILY_ROGUE", "Rogue", "" };
-        case SPELLFAMILY_HUNTER: return { "SPELLFAMILY_HUNTER", "Hunter", "" };
-        case SPELLFAMILY_PALADIN: return { "SPELLFAMILY_PALADIN", "Paladin", "" };
-        case SPELLFAMILY_SHAMAN: return { "SPELLFAMILY_SHAMAN", "Shaman", "" };
-        case SPELLFAMILY_UNK2: return { "SPELLFAMILY_UNK2", "Unk2 (Silence resistance?)", "" };
-        case SPELLFAMILY_POTION: return { "SPELLFAMILY_POTION", "Potion", "" };
-        case SPELLFAMILY_DEATHKNIGHT: return { "SPELLFAMILY_DEATHKNIGHT", "Death Knight", "" };
-        case SPELLFAMILY_PET: return { "SPELLFAMILY_PET", "Pet", "" };
-        default: throw std::out_of_range("value");
+    case SPELLFAMILY_GENERIC: return { "SPELLFAMILY_GENERIC", "Generic", "" };
+    case SPELLFAMILY_UNK1: return { "SPELLFAMILY_UNK1", "Unk1 (events, holidays, ...)", "" };
+    case SPELLFAMILY_MAGE: return { "SPELLFAMILY_MAGE", "Mage", "" };
+    case SPELLFAMILY_WARRIOR: return { "SPELLFAMILY_WARRIOR", "Warrior", "" };
+    case SPELLFAMILY_WARLOCK: return { "SPELLFAMILY_WARLOCK", "Warlock", "" };
+    case SPELLFAMILY_PRIEST: return { "SPELLFAMILY_PRIEST", "Priest", "" };
+    case SPELLFAMILY_DRUID: return { "SPELLFAMILY_DRUID", "Druid", "" };
+    case SPELLFAMILY_ROGUE: return { "SPELLFAMILY_ROGUE", "Rogue", "" };
+    case SPELLFAMILY_HUNTER: return { "SPELLFAMILY_HUNTER", "Hunter", "" };
+    case SPELLFAMILY_PALADIN: return { "SPELLFAMILY_PALADIN", "Paladin", "" };
+    case SPELLFAMILY_SHAMAN: return { "SPELLFAMILY_SHAMAN", "Shaman", "" };
+    case SPELLFAMILY_UNK2: return { "SPELLFAMILY_UNK2", "Unk2 (Silence resistance?)", "" };
+    case SPELLFAMILY_POTION: return { "SPELLFAMILY_POTION", "Potion", "" };
+    case SPELLFAMILY_NECROMANCER: return { "SPELLFAMILY_NECROMANCER", "Necromancer", "" };
+    case SPELLFAMILY_PET: return { "SPELLFAMILY_PET", "Pet", "" };
+    case SPELLFAMILY_FIRST_AID: return { "SPELLFAMILY_FIRST_AID", "First Aid", "" };
+    case SPELLFAMILY_WITCH: return { "SPELLFAMILY_WITCH", "Witch", "" };
+    case SPELLFAMILY_BARD: return { "SPELLFAMILY_BARD", "Bard", "" };
+    case SPELLFAMILY_MONK: return { "SPELLFAMILY_MONK", "Monk", "" };
+    case SPELLFAMILY_WARDEN: return { "SPELLFAMILY_WARDEN", "Warden", "" };
+    default: throw std::out_of_range("value");
     }
 }
 
@@ -3028,22 +3071,28 @@ TC_API_EXPORT SpellFamilyNames EnumUtils<SpellFamilyNames>::FromIndex(size_t ind
 {
     switch (index)
     {
-        case 0: return SPELLFAMILY_GENERIC;
-        case 1: return SPELLFAMILY_UNK1;
-        case 2: return SPELLFAMILY_MAGE;
-        case 3: return SPELLFAMILY_WARRIOR;
-        case 4: return SPELLFAMILY_WARLOCK;
-        case 5: return SPELLFAMILY_PRIEST;
-        case 6: return SPELLFAMILY_DRUID;
-        case 7: return SPELLFAMILY_ROGUE;
-        case 8: return SPELLFAMILY_HUNTER;
-        case 9: return SPELLFAMILY_PALADIN;
-        case 10: return SPELLFAMILY_SHAMAN;
-        case 11: return SPELLFAMILY_UNK2;
-        case 12: return SPELLFAMILY_POTION;
-        case 13: return SPELLFAMILY_DEATHKNIGHT;
-        case 14: return SPELLFAMILY_PET;
-        default: throw std::out_of_range("index");
+
+    case 0: return SPELLFAMILY_GENERIC;
+    case 1: return SPELLFAMILY_UNK1;
+    case 2: return SPELLFAMILY_MAGE;
+    case 3: return SPELLFAMILY_WARRIOR;
+    case 4: return SPELLFAMILY_WARLOCK;
+    case 5: return SPELLFAMILY_PRIEST;
+    case 6: return SPELLFAMILY_DRUID;
+    case 7: return SPELLFAMILY_ROGUE;
+    case 8: return SPELLFAMILY_HUNTER;
+    case 9: return SPELLFAMILY_PALADIN;
+    case 10: return SPELLFAMILY_SHAMAN;
+    case 11: return SPELLFAMILY_UNK2;
+    case 12: return SPELLFAMILY_POTION;
+    case 13: return SPELLFAMILY_NECROMANCER;
+    case 14: return SPELLFAMILY_PET;
+    case 15: return SPELLFAMILY_FIRST_AID;
+    case 16: return SPELLFAMILY_WITCH;
+    case 17: return SPELLFAMILY_BARD;
+    case 18: return SPELLFAMILY_MONK;
+    case 19: return SPELLFAMILY_WARDEN;
+    default: throw std::out_of_range("index");
     }
 }
 
@@ -3065,8 +3114,13 @@ TC_API_EXPORT size_t EnumUtils<SpellFamilyNames>::ToIndex(SpellFamilyNames value
         case SPELLFAMILY_SHAMAN: return 10;
         case SPELLFAMILY_UNK2: return 11;
         case SPELLFAMILY_POTION: return 12;
-        case SPELLFAMILY_DEATHKNIGHT: return 13;
+        case SPELLFAMILY_NECROMANCER: return 13;
         case SPELLFAMILY_PET: return 14;
+        case SPELLFAMILY_FIRST_AID: return 15;
+        case SPELLFAMILY_WITCH: return 16;
+        case SPELLFAMILY_BARD: return 17;
+        case SPELLFAMILY_MONK: return 18;
+        case SPELLFAMILY_WARDEN: return 19;
         default: throw std::out_of_range("value");
     }
 }

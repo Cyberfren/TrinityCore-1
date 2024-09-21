@@ -25,7 +25,6 @@
 #include "ScriptMgr.h"
 #include "Battleground.h"
 #include "CellImpl.h"
-#include "Containers.h"
 #include "DBCStores.h"
 #include "GameTime.h"
 #include "GridNotifiersImpl.h"
@@ -44,6 +43,8 @@
 #include "SpellMgr.h"
 #include "SpellScript.h"
 #include "Vehicle.h"
+#include "Containers.h"
+
 
 class spell_gen_absorb0_hitlimit1 : public AuraScript
 {
@@ -255,7 +256,7 @@ class spell_gen_arena_drink : public AuraScript
     {
         if (!spellInfo->GetEffect(EFFECT_0).IsAura(SPELL_AURA_MOD_POWER_REGEN))
         {
-            TC_LOG_ERROR("spells", "Aura {} structure has been changed - first aura is no longer SPELL_AURA_MOD_POWER_REGEN", GetId());
+            TC_LOG_ERROR("spells", "Aura %d structure has been changed - first aura is no longer SPELL_AURA_MOD_POWER_REGEN", GetId());
             return false;
         }
 
@@ -1433,6 +1434,40 @@ class spell_gen_divine_storm_cd_reset : public SpellScript
     }
 };
 
+enum StormstrikeSpell
+{
+    SPELL_STORMSTRIKE = 17364,
+};
+
+
+// 80223 Stormstrike!
+class spell_gen_stormstrike_cd_reset : public SpellScript
+{
+    PrepareSpellScript(spell_gen_stormstrike_cd_reset);
+
+    bool Load() override
+    {
+        return GetCaster()->GetTypeId() == TYPEID_PLAYER;
+    }
+
+    bool Validate(SpellInfo const* /*spellInfo*/) override
+    {
+        return ValidateSpellInfo({ SPELL_STORMSTRIKE });
+    }
+
+    void HandleScript(SpellEffIndex /*effIndex*/)
+    {
+        Player* caster = GetCaster()->ToPlayer();
+        if (caster->GetSpellHistory()->HasCooldown(SPELL_STORMSTRIKE))
+            caster->GetSpellHistory()->ResetCooldown(SPELL_STORMSTRIKE, true);
+    }
+
+    void Register() override
+    {
+        OnEffectHitTarget += SpellEffectFn(spell_gen_stormstrike_cd_reset::HandleScript, EFFECT_0, SPELL_EFFECT_DUMMY);
+    }
+};
+
 class spell_gen_ds_flush_knockback : public SpellScript
 {
     PrepareSpellScript(spell_gen_ds_flush_knockback);
@@ -1920,7 +1955,7 @@ class spell_gen_gift_of_naaru : public AuraScript
                 break;
             case SPELLFAMILY_WARRIOR:
             case SPELLFAMILY_HUNTER:
-            case SPELLFAMILY_DEATHKNIGHT:
+            case SPELLFAMILY_NECROMANCER:
                 heal = 1.1f * float(std::max(GetCaster()->GetTotalAttackPowerValue(BASE_ATTACK), GetCaster()->GetTotalAttackPowerValue(RANGED_ATTACK)));
                 break;
             case SPELLFAMILY_GENERIC:
@@ -3890,7 +3925,7 @@ class spell_gen_gm_freeze : public AuraScript
             player->SetUnitFlag(UNIT_FLAG_NON_ATTACKABLE);
 
             // if player class = hunter || warlock remove pet if alive
-            if ((player->GetClass() == CLASS_HUNTER) || (player->GetClass() == CLASS_WARLOCK))
+            if ((player->GetClass() == CLASS_HUNTER) || (player->GetClass() == CLASS_WARLOCK) || (player->GetClass() == CLASS_DRUID) || (player->GetClass() == CLASS_WITCH))
             {
                 if (Pet* pet = player->GetPet())
                 {
@@ -4216,7 +4251,7 @@ class spell_gen_mixology_bonus : public AuraScript
                     SetBonusValueForEffect(EFFECT_0, 5, aurEff);
                     break;
                 default:
-                    TC_LOG_ERROR("spells", "SpellId {} couldn't be processed in spell_gen_mixology_bonus", GetId());
+                    TC_LOG_ERROR("spells", "SpellId %u couldn't be processed in spell_gen_mixology_bonus", GetId());
                     break;
             }
             amount += bonus;
@@ -4607,6 +4642,7 @@ void AddSC_generic_spell_scripts()
     RegisterSpellScript(spell_gen_despawn_self);
     RegisterSpellScript(spell_gen_despawn_target);
     RegisterSpellScript(spell_gen_divine_storm_cd_reset);
+    RegisterSpellScript(spell_gen_stormstrike_cd_reset);
     RegisterSpellScript(spell_gen_ds_flush_knockback);
     RegisterSpellScript(spell_gen_dungeon_credit);
     RegisterSpellScript(spell_ethereal_pet_aura);

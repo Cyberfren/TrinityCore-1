@@ -516,7 +516,7 @@ enum PlayerSlots
 {
     // first slot for item stored (in any way in player m_items data)
     PLAYER_SLOT_START           = 0,
-    // last+1 slot for item stored (in any way in player m_items data)
+    // last1 slot for item stored (in any way in player m_items data)
     PLAYER_SLOT_END             = 150,
     PLAYER_SLOTS_COUNT          = (PLAYER_SLOT_END - PLAYER_SLOT_START)
 };
@@ -602,22 +602,22 @@ typedef std::vector<ItemPosCount> ItemPosCountVec;
 
 enum TransferAbortReason
 {
-    TRANSFER_ABORT_NONE                         = 0x00,
-    TRANSFER_ABORT_ERROR                        = 0x01,
-    TRANSFER_ABORT_MAX_PLAYERS                  = 0x02,         // Transfer Aborted: instance is full
-    TRANSFER_ABORT_NOT_FOUND                    = 0x03,         // Transfer Aborted: instance not found
-    TRANSFER_ABORT_TOO_MANY_INSTANCES           = 0x04,         // You have entered too many instances recently.
-    TRANSFER_ABORT_ZONE_IN_COMBAT               = 0x06,         // Unable to zone in while an encounter is in progress.
-    TRANSFER_ABORT_INSUF_EXPAN_LVL              = 0x07,         // You must have <TBC, WotLK> expansion installed to access this area.
-    TRANSFER_ABORT_DIFFICULTY                   = 0x08,         // <Normal, Heroic, Epic> difficulty mode is not available for %s.
-    TRANSFER_ABORT_UNIQUE_MESSAGE               = 0x09,         // Until you've escaped TLK's grasp, you cannot leave this place!
-    TRANSFER_ABORT_TOO_MANY_REALM_INSTANCES     = 0x0A,         // Additional instances cannot be launched, please try again later.
-    TRANSFER_ABORT_NEED_GROUP                   = 0x0B,         // 3.1
-    TRANSFER_ABORT_NOT_FOUND1                   = 0x0C,         // 3.1
-    TRANSFER_ABORT_NOT_FOUND2                   = 0x0D,         // 3.1
-    TRANSFER_ABORT_NOT_FOUND3                   = 0x0E,         // 3.2
-    TRANSFER_ABORT_REALM_ONLY                   = 0x0F,         // All players on party must be from the same realm.
-    TRANSFER_ABORT_MAP_NOT_ALLOWED              = 0x10          // Map can't be entered at this time.
+    TRANSFER_ABORT_NONE                     = 0x00,
+    TRANSFER_ABORT_ERROR                    = 0x01,
+    TRANSFER_ABORT_MAX_PLAYERS              = 0x02,         // Transfer Aborted: instance is full
+    TRANSFER_ABORT_NOT_FOUND                = 0x03,         // Transfer Aborted: instance not found
+    TRANSFER_ABORT_TOO_MANY_INSTANCES       = 0x04,         // You have entered too many instances recently.
+    TRANSFER_ABORT_ZONE_IN_COMBAT           = 0x06,         // Unable to zone in while an encounter is in progress.
+    TRANSFER_ABORT_INSUF_EXPAN_LVL          = 0x07,         // You must have <TBC, WotLK> expansion installed to access this area.
+    TRANSFER_ABORT_DIFFICULTY               = 0x08,         // <Normal, Heroic, Epic> difficulty mode is not available for %s.
+    TRANSFER_ABORT_UNIQUE_MESSAGE           = 0x09,         // Until you've escaped TLK's grasp, you cannot leave this place!
+    TRANSFER_ABORT_TOO_MANY_REALM_INSTANCES = 0x0A,         // Additional instances cannot be launched, please try again later.
+    TRANSFER_ABORT_NEED_GROUP               = 0x0B,         // 3.1
+    TRANSFER_ABORT_NOT_FOUND1               = 0x0C,         // 3.1
+    TRANSFER_ABORT_NOT_FOUND2               = 0x0D,         // 3.1
+    TRANSFER_ABORT_NOT_FOUND3               = 0x0E,         // 3.2
+    TRANSFER_ABORT_REALM_ONLY               = 0x0F,         // All players on party must be from the same realm.
+    TRANSFER_ABORT_MAP_NOT_ALLOWED          = 0x10          // Map can't be entered at this time.
 };
 
 enum InstanceResetWarningType
@@ -1460,6 +1460,7 @@ class TC_GAME_API Player : public Unit, public GridObject<Player>
         void SendUnlearnSpells();
         bool AddSpell(uint32 spellId, bool active, bool learning, bool dependent, bool disabled, bool loading = false, uint32 fromSkill = 0);
         void LearnSpell(uint32 spell_id, bool dependent, uint32 fromSkill = 0);
+        void TempLearnSpell(uint32 spell_id, bool dependent, uint32 fromSkill = 0);
         void RemoveSpell(uint32 spell_id, bool disabled = false, bool learn_low_rank = true);
         void ResetSpells(bool myClassOnly = false);
         void LearnCustomSpells();
@@ -1472,8 +1473,6 @@ class TC_GAME_API Player : public Unit, public GridObject<Player>
         void SetReputation(uint32 factionentry, uint32 value);
         uint32 GetReputation(uint32 factionentry) const;
         std::string const& GetGuildName() const;
-
-        // Talents
         uint32 GetFreeTalentPoints() const { return GetUInt32Value(PLAYER_CHARACTER_POINTS1); }
         void SetFreeTalentPoints(uint32 points);
         uint32 GetUsedTalentCount() const { return _talentMgr->UsedTalentCount; }
@@ -2131,7 +2130,7 @@ class TC_GAME_API Player : public Unit, public GridObject<Player>
         void SendSavedInstances();
         bool Satisfy(AccessRequirement const* ar, uint32 target_map, bool report = false);
         bool CheckInstanceValidity(bool /*isLogin*/);
-
+       
         // last used pet number (for BG's)
         uint32 GetLastPetNumber() const { return m_lastpetnumber; }
         void SetLastPetNumber(uint32 petnumber) { m_lastpetnumber = petnumber; }
@@ -2229,7 +2228,6 @@ class TC_GAME_API Player : public Unit, public GridObject<Player>
         bool SetFeatherFall(bool apply, bool packetOnly = false) override;
         bool SetHover(bool enable, bool packetOnly = false, bool updateAnimTier = true) override;
         void SendMovementSetCollisionHeight(float height);
-
         bool CanFly() const override { return m_movementInfo.HasMovementFlag(MOVEMENTFLAG_CAN_FLY); }
         bool CanEnterWater() const override { return true; }
 
@@ -2365,7 +2363,7 @@ class TC_GAME_API Player : public Unit, public GridObject<Player>
         bool m_itemUpdateQueueBlocked;
 
         uint32 m_ExtraFlags;
-
+      //  PlayerTalentInfo* _talentMgr;
         QuestStatusMap m_QuestStatus;
         QuestStatusSaveMap m_QuestStatusSave;
 

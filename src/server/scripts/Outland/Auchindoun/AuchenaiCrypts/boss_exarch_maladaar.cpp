@@ -314,7 +314,7 @@ struct npc_stolen_soul : public ScriptedAI
                     task.Repeat(10s);
                 });
                 break;
-            case CLASS_DEATH_KNIGHT:       //
+            case CLASS_NECROMANCER:       //
                 _scheduler.Schedule(3s, 6s, [this](TaskContext task)
                 {
                     DoCastVictim(SPELL_PLAGUE_STRIKE);

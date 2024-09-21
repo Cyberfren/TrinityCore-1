@@ -101,19 +101,25 @@ enum BattlegroundQuests
 
 enum BattlegroundMarks
 {
-    SPELL_WS_MARK_LOSER             = 24950,
-    SPELL_WS_MARK_WINNER            = 24951,
-    SPELL_AB_MARK_LOSER             = 24952,
-    SPELL_AB_MARK_WINNER            = 24953,
-    SPELL_AV_MARK_LOSER             = 24954,
-    SPELL_AV_MARK_WINNER            = 24955,
-    SPELL_SA_MARK_WINNER            = 61160,
-    SPELL_SA_MARK_LOSER             = 61159,
-    ITEM_AV_MARK_OF_HONOR           = 20560,
-    ITEM_WS_MARK_OF_HONOR           = 20558,
-    ITEM_AB_MARK_OF_HONOR           = 20559,
-    ITEM_EY_MARK_OF_HONOR           = 29024,
-    ITEM_SA_MARK_OF_HONOR           = 42425
+    SPELL_TP_MARK_WINNER = 61160,
+    SPELL_TP_MARK_LOSER = 61159,
+    SPELL_BFG_MARK_LOSER = 749520,   //fake
+    SPELL_BFG_MARK_WINNER = 749530,
+    ITEM_TP_MARK_OF_HONOR = 42425,
+    SPELL_WS_MARK_LOSER = 24950,
+    SPELL_WS_MARK_WINNER = 24951,
+    SPELL_AB_MARK_LOSER = 24952,
+    SPELL_AB_MARK_WINNER = 24953,
+    SPELL_AV_MARK_LOSER = 24954,
+    SPELL_AV_MARK_WINNER = 24955,
+    //SPELL_SA_MARK_WINNER            = 61160,
+    //SPELL_SA_MARK_LOSER             = 61159,
+    ITEM_AV_MARK_OF_HONOR = 20560,
+    ITEM_WS_MARK_OF_HONOR = 20558,
+    ITEM_AB_MARK_OF_HONOR = 20559,
+    ITEM_EY_MARK_OF_HONOR = 29024,
+    ITEM_SA_MARK_OF_HONOR = 42425
+
 };
 
 enum BattlegroundMarksCount
@@ -154,7 +160,7 @@ enum BattlegroundTimeIntervals
     MAX_OFFLINE_TIME                = 300,                  // secs
     RESPAWN_ONE_DAY                 = 86400,                // secs
     RESPAWN_IMMEDIATELY             = 0,                    // secs
-    BUFF_RESPAWN_TIME               = 180                   // secs
+    BUFF_RESPAWN_TIME               = 180    
 };
 
 enum BattlegroundStartTimeIntervals
@@ -164,13 +170,30 @@ enum BattlegroundStartTimeIntervals
     BG_START_DELAY_30S              = 30000,                // ms (30 seconds)
     BG_START_DELAY_15S              = 15000,                // ms (15 seconds) Used only in arena
     BG_START_DELAY_NONE             = 0                     // ms
-};
-
+};/*
+enum BattlegroundMinerals
+{
+    BG_OBJECT_IRON_NODE_ENTRY = 1735,
+    BG_OBJECT_GOLD_NODE_ENTRY = 1734,
+    BG_OBJECT_MITH_NODE_ENTRY = 2040,
+    BG_OBJECT_TS_NODE_ENTRY = 2047,
+    BG_OBJECT_SILVER_NODE_ENTRY = 1733,
+    BG_OBJECT_DIRON_NODE_ENTRY = 165658,
+    BG_OBJECT_THOR_NODE_ENTRY = 324,
+    BG_OBJECT_RTHOR_NODE_ENTRY = 175404,
+    BG_OBJECT_FADE_NODE_ENTRY = 2042,
+    BG_OBJECT_BLIND_NODE_ENTRY = 142143,
+    BG_OBJECT_ROTUS_NODE_ENTRY = 176589,
+    BG_OBJECT_THORN_NODE_ENTRY = 2046,
+    BG_OBJECT_FIREB_NODE_ENTRY = 2866
+};*/
 enum BattlegroundBuffObjects
 {
     BG_OBJECTID_SPEEDBUFF_ENTRY     = 179871,
     BG_OBJECTID_REGENBUFF_ENTRY     = 179904,
     BG_OBJECTID_BERSERKERBUFF_ENTRY = 179905
+   // BG_OBJECTID_LAVABUFF_ENTRY      = 179986
+
 };
 
 const uint32 Buff_Entries[3] = { BG_OBJECTID_SPEEDBUFF_ENTRY, BG_OBJECTID_REGENBUFF_ENTRY, BG_OBJECTID_BERSERKERBUFF_ENTRY };

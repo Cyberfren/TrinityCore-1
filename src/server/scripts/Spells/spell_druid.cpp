@@ -30,6 +30,7 @@
 #include "SpellHistory.h"
 #include "SpellMgr.h"
 #include "SpellScript.h"
+#include "SharedDefines.h"
 
 enum DruidSpells
 {
@@ -93,7 +94,18 @@ enum DruidSpells
     SPELL_DRUID_FRENZIED_REGENERATION_HEAL  = 22845,
     SPELL_DRUID_GLYPH_OF_NOURISH            = 62971,
     SPELL_DRUID_NURTURING_INSTINCT_R1       = 47179,
-    SPELL_DRUID_NURTURING_INSTINCT_R2       = 47180
+    SPELL_DRUID_NURTURING_INSTINCT_R2       = 47180,
+    SPELL_DRUID_SYMBIOSIS_FOR_CASTER = 110309,
+    SPELL_DRUID_SYMBIOSIS_DEATH_KNIGHT = 110478,
+    SPELL_DRUID_SYMBIOSIS_HUNTER = 110479,
+    SPELL_DRUID_SYMBIOSIS_MAGE = 110482,
+    SPELL_DRUID_SYMBIOSIS_MONK = 110483,
+    SPELL_DRUID_SYMBIOSIS_PALADIN = 110484,
+    SPELL_DRUID_SYMBIOSIS_PRIEST = 110485,
+    SPELL_DRUID_SYMBIOSIS_ROGUE = 110486,
+    SPELL_DRUID_SYMBIOSIS_SHAMAN = 110488,
+    SPELL_DRUID_SYMBIOSIS_WARLOCK = 110490,
+    SPELL_DRUID_SYMBIOSIS_WARRIOR = 110491,
 };
 
 enum MiscSpells
@@ -101,7 +113,376 @@ enum MiscSpells
     SPELL_CATEGORY_MANGLE_BEAR              = 971
 };
 
+/*
+class spell_dru_symbiosis_caster_aura : public AuraScript
+{
+    PrepareAuraScript(spell_dru_symbiosis_caster_aura);
+
+    uint32 targetSpellId = 0;
+    uint64 targetGuid = 0;
+
+public:
+    void Bind(uint32 overrideSpellId, uint32 targetSpell, uint32 target)
+    {
+        GetEffect(EFFECT_0)->ChangeAmount(overrideSpellId);
+        targetSpellId = targetSpell;
+        targetGuid = target;
+    }
+
+    void HandleRemove(AuraEffect const* effect, AuraEffectHandleModes)
+    {
+        if (Unit* target = ObjectAccessor::GetUnitZ(*GetUnitOwner(), targetGuid))
+            target->RemoveAurasDueToSpell(targetSpellId, GetUnitOwner()->GetGUID());
+        GetUnitOwner()->RemoveAurasDueToSpell(effect->GetAmount());
+        if (auto const* spellInfo = sSpellMgr->GetSpellInfo(effect->GetAmount()))
+        {
+            for (auto&& effect : spellInfo->Effects)
+            {
+                if (effect.Effect == SPELL_EFFECT_SUMMON)
+                {
+                    std::list<TempSummon*> summons;
+                    GetUnitOwner()->GetSummons(summons, effect.MiscValue);
+                    for (auto&& itr : summons)
+                        itr->UnSummon();
+                }
+            }
+        }
+    }
+
+    void HandleUpdate(uint32)
+    {
+        Unit* caster = GetCaster();
+        Player* druid = caster ? caster->ToPlayer() : nullptr;
+        Player* target = ObjectAccessor::GetPlayerZ(*GetUnitOwner(), targetGuid);
+        if (!druid || !target || !target->IsInSameRaidWith(druid))
+            Remove();
+    }
+
+    void Register() override
+    {
+        OnEffectRemove += AuraEffectRemoveFn(spell_dru_symbiosis_caster_aura::HandleRemove, EFFECT_0, SPELL_AURA_OVERRIDE_ACTIONBAR_SPELLS, AURA_EFFECT_HANDLE_REAL);
+        OnAuraUpdate += AuraUpdateFn(spell_dru_symbiosis_caster_aura::HandleUpdate);
+    }
+};
+
+// 110478, 110479, 110482, 110483, 110484, 110485, 110486, 110488, 110490, 110491
+class spell_dru_symbiosis_target_check : public AuraScript
+{
+    PrepareAuraScript(spell_dru_symbiosis_target_check);
+
+    void HandleUpdate(uint32)
+    {
+        Unit* caster = GetCaster();
+        Player* druid = caster ? caster->ToPlayer() : nullptr;
+        Player* target = GetUnitOwner()->ToPlayer();
+        if (!druid || !target || !target->IsInSameRaidWith(druid) || target->GetMapId() != druid->GetMapId())
+            Remove();
+    }
+
+    void HandleRemove(AuraEffect const* effect, AuraEffectHandleModes)
+    {
+        if (Unit* caster = GetCaster())
+            caster->RemoveAurasDueToSpell(SPELL_DRUID_SYMBIOSIS_FOR_CASTER);
+        GetUnitOwner()->RemoveAurasDueToSpell(effect->GetAmount());
+        if (auto const* spellInfo = sSpellMgr->GetSpellInfo(effect->GetAmount()))
+        {
+            for (auto&& effect : spellInfo->Effects)
+            {
+                if (effect.Effect == SPELL_EFFECT_SUMMON)
+                {
+                    std::list<TempSummon*> summons;
+                    GetUnitOwner()->GetSummons(summons, effect.MiscValue);
+                    for (auto&& itr : summons)
+                        itr->UnSummon();
+                }
+            }
+        }
+    }
+
+    void Register() override
+    {
+        AfterEffectApply += AuraEffectApplyFn(spell_dru_symbiosis_target_check::HandleUpdate);
+        OnEffectRemove += AuraEffectRemoveFn(spell_dru_symbiosis_target_check::HandleRemove, EFFECT_0, SPELL_AURA_OVERRIDE_ACTIONBAR_SPELLS, AURA_EFFECT_HANDLE_REAL);
+    }
+};
+
+// 110309 - Symbiosis
+class spell_dru_symbiosis : public SpellScript
+{
+    PrepareSpellScript(spell_dru_symbiosis);
+
+    bool Load() override
+    {
+        return GetCaster()->GetTypeId() == TYPEID_PLAYER;
+    }
+
+    SpellCastResult CheckCast()
+    {
+        Player* target = GetExplTargetUnit() ? GetExplTargetUnit()->ToPlayer() : nullptr;
+        if (!target || target->GetClass() == CLASS_DRUID || target->GetSpecialization() == SPEC_NONE)
+            return SPELL_FAILED_BAD_TARGETS;
+        if (!GetCaster()->IsInRaidWith(target))
+            return SPELL_FAILED_TARGET_NOT_IN_PARTY;
+        return SPELL_CAST_OK;
+    }
+
+    void HandleScriptEffect(SpellEffIndex)
+    {
+        Player* druid = GetCaster()->ToPlayer();
+        Player* target = GetHitUnit()->ToPlayer();
+        Aura* symbiosis = druid->GetAura(SPELL_DRUID_SYMBIOSIS_FOR_CASTER);
+        if (!druid || !target || !symbiosis)
+            return;
+
+        uint32 targetSpell = 0;
+        int32  bpTarget = 0;
+
+        if (target->GetSpecialization() == SPEC_NONE || druid->GetSpecialization() == SPEC_NONE)
+            return;
+
+        if (auto scirpt = dynamic_cast<spell_dru_symbiosis_caster_aura*>(symbiosis->GetScriptByName("spell_dru_symbiosis_caster_aura")))
+        {
+            if (int32 casterSpell = GetSpells(targetSpell, bpTarget, target))
+            {
+                scirpt->Bind(casterSpell, targetSpell, target->GetGUID());
+                if (bpTarget && targetSpell)
+                    druid->CastCustomSpell(targetSpell, SPELLVALUE_BASE_POINT0, bpTarget, target, true);
+            }
+        }
+    }
+
+    uint32 GetSpells(uint32& targetSpell, int32& bpTarget, Player* target)
+    {
+        Specializations specId = GetCaster()->ToPlayer()->GetSpecialization();
+
+        switch (target->GetClass())
+        {
+        case CLASS_DEATH_KNIGHT:
+        {
+            targetSpell = SPELL_DRUID_SYMBIOSIS_DEATH_KNIGHT;
+
+            if (target->GetRoleForGroup(target->GetSpecialization()) == ROLES_DPS)
+                bpTarget = 113516;      // Wild Mushroom: Plague
+            else if (target->GetRoleForGroup(target->GetSpecialization()) == ROLES_TANK)
+                bpTarget = 113072;      // Might of Ursoc
+
+            switch (specId)
+            {
+            case SPEC_DRUID_BALANCE:
+                return 110570;      // Anti-Magic Shell
+            case SPEC_DRUID_GUARDIAN:
+                return 122285;      // Bone Shield
+            case SPEC_DRUID_FERAL:
+                return 122282;      // Death Coil
+            case SPEC_DRUID_RESTORATION:
+                return 110575;      // Icebound Fortitude
+            }
+            break;
+        }
+        case CLASS_HUNTER:
+        {
+            targetSpell = SPELL_DRUID_SYMBIOSIS_HUNTER;
+            bpTarget = 113073;          // Dash
+
+            switch (specId)
+            {
+            case SPEC_DRUID_BALANCE:
+                return 110588;      // Misdirection
+            case SPEC_DRUID_GUARDIAN:
+                return 110600;      // Ice Trap
+            case SPEC_DRUID_FERAL:
+                return 110597;      // Play Dead
+            case SPEC_DRUID_RESTORATION:
+                return 110617;      // Deterrence
+            }
+            break;
+        }
+        case CLASS_MAGE:
+        {
+            targetSpell = SPELL_DRUID_SYMBIOSIS_MAGE;
+            bpTarget = 113074;          // Healing Touch
+
+            switch (specId)
+            {
+            case SPEC_DRUID_BALANCE:
+                return 110621;      // Mirror Image
+            case SPEC_DRUID_GUARDIAN:
+                return 110694;      // Frost Armor
+            case SPEC_DRUID_FERAL:
+                return 110693;      // Frost Nova
+            case SPEC_DRUID_RESTORATION:
+                return 110696;      // Ice Block
+            }
+            break;
+        }
+        case CLASS_MONK:
+        {
+            targetSpell = SPELL_DRUID_SYMBIOSIS_MONK;
+
+            if (target->GetRoleForGroup(target->GetSpecialization()) == ROLES_TANK)
+                bpTarget = 113306;      // Survival Instincts
+            else if (target->GetRoleForGroup(target->GetSpecialization()) == ROLES_DPS)
+                bpTarget = 127361;      // Bear Hug
+            else if (target->GetRoleForGroup(target->GetSpecialization()) == ROLES_HEALER)
+                bpTarget = 113275;      // Entangling Roots
+
+            switch (specId)
+            {
+            case SPEC_DRUID_BALANCE:
+                return 126458;      // Grapple Weapon
+            case SPEC_DRUID_GUARDIAN:
+                return 126453;      // Elusive Brew
+            case SPEC_DRUID_FERAL:
+                return 126449;      // Clash
+            case SPEC_DRUID_RESTORATION:
+                return 126456;      // Fortifying Brew
+            }
+            break;
+        }
+        case CLASS_PALADIN:
+        {
+            targetSpell = SPELL_DRUID_SYMBIOSIS_PALADIN;
+
+            if (target->GetRoleForGroup(target->GetSpecialization()) == ROLES_TANK)
+                bpTarget = 113075;      // Barkskin
+            else if (target->GetRoleForGroup(target->GetSpecialization()) == ROLES_DPS)
+                bpTarget = 122287;      // Wrath
+            else if (target->GetRoleForGroup(target->GetSpecialization()) == ROLES_HEALER)
+                bpTarget = 113269;      // Rebirth
+
+            switch (specId)
+            {
+            case SPEC_DRUID_BALANCE:
+                return 110698;      // Hammer of Justice
+            case SPEC_DRUID_GUARDIAN:
+                return 110701;      // Consecration
+            case SPEC_DRUID_FERAL:
+                return 110700;      // Divine Shield
+            case SPEC_DRUID_RESTORATION:
+                return 122288;      // Cleanse
+            }
+            break;
+        }
+        case CLASS_PRIEST:
+        {
+            targetSpell = SPELL_DRUID_SYMBIOSIS_PRIEST;
+
+            if (target->GetRoleForGroup(target->GetSpecialization()) == ROLES_DPS)
+                bpTarget = 113277;      // Tranquility
+            else if (target->GetRoleForGroup(target->GetSpecialization()) == ROLES_HEALER)
+                bpTarget = 113506;      // Cyclone
+
+            switch (specId)
+            {
+            case SPEC_DRUID_BALANCE:
+                return 110707;      // Mass Dispel
+            case SPEC_DRUID_GUARDIAN:
+                return 110717;      // Fear Ward
+            case SPEC_DRUID_FERAL:
+                return 110715;      // Dispersion
+            case SPEC_DRUID_RESTORATION:
+                return 110718;      // Leap of Faith
+            }
+            break;
+        }
+        case CLASS_ROGUE:
+        {
+            targetSpell = SPELL_DRUID_SYMBIOSIS_ROGUE;
+            bpTarget = 113613;          // Growl
+
+            switch (specId)
+            {
+            case SPEC_DRUID_BALANCE:
+                return 110788;      // Cloak of Shadows
+            case SPEC_DRUID_GUARDIAN:
+                return 122289;      // Feint
+            case SPEC_DRUID_FERAL:
+                return 110730;      // Redirect
+            case SPEC_DRUID_RESTORATION:
+                return 110791;      // Evasion
+            }
+            break;
+        }
+        case CLASS_SHAMAN:
+        {
+            targetSpell = SPELL_DRUID_SYMBIOSIS_SHAMAN;
+
+            if (target->GetRoleForGroup(target->GetSpecialization()) == ROLES_HEALER)
+                bpTarget = 113289;      // Prowl
+            else if (target->GetRoleForGroup(target->GetSpecialization()) == ROLES_DPS)
+                bpTarget = 113286;      // Solar Beam
+
+            switch (specId)
+            {
+            case SPEC_DRUID_BALANCE:
+                return 110802;      // Purge
+            case SPEC_DRUID_GUARDIAN:
+                return 110803;      // Lightning Shield
+            case SPEC_DRUID_FERAL:
+                return 110807;      // Feral Spirit
+            case SPEC_DRUID_RESTORATION:
+                return 110806;      // Spiritwalker's Grace
+            }
+            break;
+        }
+        case CLASS_WARLOCK:
+        {
+            bpTarget = 113295;          // Rejuvenation
+            targetSpell = SPELL_DRUID_SYMBIOSIS_WARLOCK;
+
+            switch (specId)
+            {
+            case SPEC_DRUID_BALANCE:
+                return 122291;      // Unending Resolve
+            case SPEC_DRUID_GUARDIAN:
+                return 122290;      // Life Tap
+            case SPEC_DRUID_FERAL:
+                return 110810;      // Soul Swap
+            case SPEC_DRUID_RESTORATION:
+                return 112970;      // Demonic Circle : Teleport
+            }
+
+            break;
+        }
+        case CLASS_WARRIOR:
+        {
+            targetSpell = SPELL_DRUID_SYMBIOSIS_WARRIOR;
+
+            if (target->GetRoleForGroup(target->GetSpecialization()) == ROLES_TANK)
+                bpTarget = 122286;      // Savage Defense
+            else if (target->GetRoleForGroup(target->GetSpecialization()) == ROLES_DPS)
+                bpTarget = 122294;      // Stampeding Shout
+
+            switch (specId)
+            {
+            case SPEC_DRUID_BALANCE:
+                return 122292;      // Intervene
+            case SPEC_DRUID_GUARDIAN:
+                return 113002;      // Spell Reflection
+            case SPEC_DRUID_FERAL:
+                return 112997;      // Shattering Blow
+            case SPEC_DRUID_RESTORATION:
+                return 113004;      // Intimidating Roar
+            }
+            break;
+        }
+        default:
+            break;
+        }
+        return 0;
+    }
+
+    void Register() override
+    {
+        OnCheckCast += SpellCheckCastFn(spell_dru_symbiosis::CheckCast);
+        OnEffectHitTarget += SpellEffectFn(spell_dru_symbiosis::HandleScriptEffect, EFFECT_1, SPELL_EFFECT_DUMMY);
+    }
+};
+
+*/
+
 // 22812 - Barkskin
+
 class spell_dru_barkskin : public AuraScript
 {
     PrepareAuraScript(spell_dru_barkskin);
@@ -122,8 +503,9 @@ class spell_dru_barkskin : public AuraScript
     }
 };
 
-// 1178 - Bear Form (Passive)
-// 9635 - Dire Bear Form (Passive)
+
+
+
 class spell_dru_bear_form_passive : public AuraScript
 {
     PrepareAuraScript(spell_dru_bear_form_passive);
@@ -1355,6 +1737,12 @@ class spell_dru_survival_instincts : public SpellScript
     SpellCastResult CheckCast()
     {
         Unit* caster = GetCaster();
+
+        // Check if the caster is a rogue
+        if (caster->GetClass() == CLASS_ROGUE)
+            return SPELL_CAST_OK;
+
+        // If the caster is not a rogue, check if they are in feral form
         if (!caster->IsInFeralForm())
             return SPELL_FAILED_ONLY_SHAPESHIFT;
 
@@ -1366,7 +1754,6 @@ class spell_dru_survival_instincts : public SpellScript
         OnCheckCast += SpellCheckCastFn(spell_dru_survival_instincts::CheckCast);
     }
 };
-
 class spell_dru_survival_instincts_aura : public AuraScript
 {
     PrepareAuraScript(spell_dru_survival_instincts_aura);
@@ -1976,4 +2363,8 @@ void AddSC_druid_spell_scripts()
     RegisterSpellScript(spell_dru_t10_restoration_4p_bonus);
     RegisterSpellScript(spell_dru_t10_restoration_4p_bonus_dummy);
     RegisterSpellAndAuraScriptPair(spell_dru_wild_growth, spell_dru_wild_growth_aura);
+   // RegisterSpellScript(spell_dru_symbiosis_caster_aura);
+  //  RegisterSpellScript(spell_dru_symbiosis_target_check);
+  //  RegisterSpellScript(spell_dru_symbiosis);
+
 }

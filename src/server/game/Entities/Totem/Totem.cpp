@@ -14,6 +14,22 @@
  * You should have received a copy of the GNU General Public License along
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
+ /*
+  * This file is part of the TrinityCore Project. See AUTHORS file for Copyright information
+  *
+  * This program is free software; you can redistribute it and/or modify it
+  * under the terms of the GNU General Public License as published by the
+  * Free Software Foundation; either version 2 of the License, or (at your
+  * option) any later version.
+  *
+  * This program is distributed in the hope that it will be useful, but WITHOUT
+  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
+  * more details.
+  *
+  * You should have received a copy of the GNU General Public License along
+  * with this program. If not, see <http://www.gnu.org/licenses/>.
+  */
 
 #include "Totem.h"
 #include "Group.h"
@@ -25,6 +41,25 @@
 #include "SpellInfo.h"
 #include "TotemPackets.h"
 
+enum customtotemslot
+{
+    TOTEM_ORC = 2,
+    TOTEM_TAUREN = 6,
+    TOTEM_TROLL = 8,
+    TOTEM_SPACECOW = 11,
+    TOTEM_DRAGONMAW = 13,
+    TOTEM_REVANTUSK = 14,
+    TOTEM_WILDHAMMER = 15,
+    TOTEM_GOBLIN = 16,
+    TOTEM_VULPERA = 25,
+    TOTEM_SEAMANS = 26,
+    TOTEM_PANDA = 27,
+    TOTEM_ANCEST = 28,
+    TOTEM_HORDE = 29,
+    TOTEM_DARKIRON = 30,
+    TOTEM_REVBERATING = 31,
+    TOTEM_ANCIENT = 22
+};
 Totem::Totem(SummonPropertiesEntry const* properties, Unit* owner) : Minion(properties, owner, false)
 {
     m_unitTypeMask |= UNIT_MASK_TOTEM;
@@ -67,12 +102,55 @@ void Totem::InitStats(uint32 duration)
             owner->SendDirectMessage(data.Write());
         }
 
-        // set display id depending on caster's race
-        if (uint32 totemDisplayId = sObjectMgr->GetModelForTotem(SummonSlot(slot), Races(owner->GetRace())))
-            SetDisplayId(totemDisplayId);
-        else
-            TC_LOG_DEBUG("misc", "Totem with entry {}, owned by player {} ({} {} {}) in slot {}, created by spell {}, does not have a specialized model. Set to default.",
-                         GetEntry(), owner->GetGUID().ToString(), owner->GetLevel(), EnumUtils::ToTitle(Races(owner->GetRace())), EnumUtils::ToTitle(Classes(owner->GetClass())), slot, GetUInt32Value(UNIT_CREATED_BY_SPELL));
+        // Map of aura IDs to corresponding totem races using customtotemslot enumeration
+        std::map<int, customtotemslot> auraToTotemRaceMap = {
+            { 81012, TOTEM_HORDE },
+            { 81010, TOTEM_PANDA },
+            { 81013, TOTEM_DARKIRON },
+            { 81009, TOTEM_SEAMANS },
+            { 81008, TOTEM_VULPERA },
+            { 81011, TOTEM_ANCEST },
+            { 81005, TOTEM_REVANTUSK },
+            { 81003, TOTEM_SPACECOW },
+            { 81000, TOTEM_ORC },
+            { 81002, TOTEM_TROLL },
+            { 81004, TOTEM_DRAGONMAW },
+            { 81001, TOTEM_TAUREN },
+            { 81006, TOTEM_WILDHAMMER },
+            { 81007, TOTEM_GOBLIN },
+            { 80999, TOTEM_ANCIENT },
+            { 81014, TOTEM_REVBERATING }
+
+        };
+
+        // Variable to hold the display ID
+        uint32 totemDisplayId = 0;
+        // Variable to track if the aura is found
+        bool foundAura = false;
+
+        for (const auto& [auraId, totemRace] : auraToTotemRaceMap)
+        {
+            if (owner->HasAura(auraId))
+            {
+                // Set the display ID based on the aura's totem race
+                totemDisplayId = sObjectMgr->GetModelForTotem(SummonSlot(slot), Races(totemRace));
+                foundAura = true;
+                break; // Exit the loop as soon as an aura is found
+            }
+        }
+
+        // If aura not found, set the display ID based on the owner's race (default)
+        if (!foundAura)
+        {
+            totemDisplayId = sObjectMgr->GetModelForTotem(SummonSlot(slot), Races(owner->GetRace()));
+        }
+
+        // Set the final display ID for the totem
+        SetDisplayId(totemDisplayId);
+
+        // The TC_LOG_DEBUG statement should be outside the loop
+        TC_LOG_DEBUG("misc", "Totem with entry %u, owned by player %s (%u %s %s) in slot %u, created by spell %u, does not have a specialized model. Set to default.",
+            GetEntry(), owner->GetGUID().ToString().c_str(), owner->GetLevel(), EnumUtils::ToTitle(Races(owner->GetRace())), EnumUtils::ToTitle(Classes(owner->GetClass())), slot, GetUInt32Value(UNIT_CREATED_BY_SPELL));
     }
 
     Minion::InitStats(duration);

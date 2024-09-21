@@ -30,8 +30,25 @@
 
 enum Spells
 {
+
+
+    SPELL_TEST_ZERO = 999990,
+    SPELL_TEST_ONE = 999991,
+    SPELL_TEST_TWO = 999992,
+    SPELL_TEST_THREE = 999993,
+    SPELL_TEST_FOUR = 999994,
+    SPELL_TEST_FIVE = 999995,
+    SPELL_TEST_SIX = 999996,
+    SPELL_TEST_SEVEN = 999997,
+    SPELL_TEST_EIGHT = 999998,
+    SPELL_TEST_NINE = 999999,
+    SPELL_SHADOW_SLASH = 80231,
+    SPELL_SOUL_STRIKE, TARGET_VICTIM = 80462,
+    SPELL_HORRIFIC_STRIKE = 80260,
+    SPELL_EDGE_OF_SHADOWS = 51462,
     /* Generic */
     SPELL_AUTO_SHOT         =    75,
+    SPELL_AUTO_SHOT_WITCH   = 81400,
     SPELL_SHOOT             =  3018,
     SPELL_THROW             =  2764,
     SPELL_SHOOT_WAND        =  5019,
@@ -771,11 +788,17 @@ PlayerAI::TargetedSpell SimpleCharmedPlayerAI::SelectAppropriateCastForSpec()
                     VerifyAndPushSpellCast(spells, SPELL_READINESS, TARGET_NONE, 10);
                     VerifyAndPushSpellCast(spells, SPELL_SILENCING_SHOT, TARGET_VICTIM, 5);
                     break;
-                case SPEC_HUNTER_SURVIVAL:
+                case SPEC_HUNTER_RANGER:
                     VerifyAndPushSpellCast(spells, SPELL_EXPLOSIVE_SHOT, TARGET_VICTIM, 8);
                     VerifyAndPushSpellCast(spells, SPELL_BLACK_ARROW, TARGET_VICTIM, 5);
                     VerifyAndPushSpellCast(spells, SPELL_MULTI_SHOT, TARGET_VICTIM, 3);
                     VerifyAndPushSpellCast(spells, SPELL_STEADY_SHOT, TARGET_VICTIM, 1);
+                    break;
+                case SPEC_HUNTER_SURVIVAL:
+                    VerifyAndPushSpellCast(spells, SPELL_AIMED_SHOT, TARGET_VICTIM, 2);
+                    VerifyAndPushSpellCast(spells, SPELL_ARCANE_SHOT, TARGET_VICTIM, 3);
+                    VerifyAndPushSpellCast(spells, SPELL_STEADY_SHOT, TARGET_VICTIM, 2);
+                    VerifyAndPushSpellCast(spells, SPELL_MULTI_SHOT, TARGET_VICTIM, 2);
                     break;
             }
             break;
@@ -868,7 +891,7 @@ PlayerAI::TargetedSpell SimpleCharmedPlayerAI::SelectAppropriateCastForSpec()
                     break;
             }
             break;
-        case CLASS_DEATH_KNIGHT:
+        case CLASS_NECROMANCER:
         {
             if (!me->IsWithinMeleeRange(me->GetVictim()))
                 VerifyAndPushSpellCast(spells, SPELL_DEATH_GRIP, TARGET_VICTIM, 25);
@@ -893,7 +916,7 @@ PlayerAI::TargetedSpell SimpleCharmedPlayerAI::SelectAppropriateCastForSpec()
             }
             switch (GetSpec())
             {
-                case SPEC_DEATH_KNIGHT_BLOOD:
+                case SPEC_NECROMANCER_BLOOD:
                     VerifyAndPushSpellCast(spells, SPELL_RUNE_TAP, TARGET_NONE, 2);
                     VerifyAndPushSpellCast(spells, SPELL_HYSTERIA, TARGET_SELF, 5);
                     if (Creature* creatureCharmer = GetCharmer())
@@ -906,7 +929,7 @@ PlayerAI::TargetedSpell SimpleCharmedPlayerAI::SelectAppropriateCastForSpec()
                     VerifyAndPushSpellCast(spells, SPELL_MARK_OF_BLOOD, TARGET_VICTIM, 20);
                     VerifyAndPushSpellCast(spells, SPELL_VAMPIRIC_BLOOD, TARGET_NONE, 10);
                     break;
-                case SPEC_DEATH_KNIGHT_FROST:
+                case SPEC_NECROMANCER_FROST:
                     if (hasFF && hasBP)
                         VerifyAndPushSpellCast(spells, SPELL_OBLITERATE, TARGET_VICTIM, 5);
                     VerifyAndPushSpellCast(spells, SPELL_HOWLING_BLAST, TARGET_VICTIM, 2);
@@ -915,7 +938,7 @@ PlayerAI::TargetedSpell SimpleCharmedPlayerAI::SelectAppropriateCastForSpec()
                     VerifyAndPushSpellCast(spells, SPELL_FROST_STRIKE, TARGET_VICTIM, 3);
                     VerifyAndPushSpellCast(spells, SPELL_BLOOD_STRIKE, TARGET_VICTIM, 1);
                     break;
-                case SPEC_DEATH_KNIGHT_UNHOLY:
+                case SPEC_NECROMANCER_UNHOLY:
                     if (hasFF && hasBP)
                         VerifyAndPushSpellCast(spells, SPELL_SCOURGE_STRIKE, TARGET_VICTIM, 5);
                     VerifyAndPushSpellCast(spells, SPELL_DEATH_AND_DECAY, TARGET_VICTIM, 2);
@@ -1009,6 +1032,27 @@ PlayerAI::TargetedSpell SimpleCharmedPlayerAI::SelectAppropriateCastForSpec()
                     break;
             }
             break;
+        case CLASS_WITCH:
+
+            switch (GetSpec())
+            {
+            case SPEC_WITCH_PREDATION:
+                VerifyAndPushSpellCast(spells, SPELL_TEST_ONE, TARGET_VICTIM, 1);
+                VerifyAndPushSpellCast(spells, SPELL_TEST_TWO, TARGET_NONE, 8);
+                VerifyAndPushSpellCast(spells, SPELL_TEST_THREE, TARGET_NONE, 7);
+                break;
+            case SPEC_WITCH_VOODOO:
+                VerifyAndPushSpellCast(spells, SPELL_TEST_FOUR, TARGET_VICTIM, 1);
+                VerifyAndPushSpellCast(spells, SPELL_TEST_FIVE, TARGET_VICTIM, 2);
+                VerifyAndPushSpellCast(spells, SPELL_TEST_SIX, TARGET_VICTIM, 1);
+                break;
+            case SPEC_WITCH_SOUL_BINDING:
+                VerifyAndPushSpellCast(spells, SPELL_TEST_SEVEN, TARGET_VICTIM, 10);
+                VerifyAndPushSpellCast(spells, SPELL_TEST_EIGHT, TARGET_VICTIM, 3);
+                VerifyAndPushSpellCast(spells, SPELL_TEST_NINE, TARGET_VICTIM, 3);
+                break;
+
+            }
         case CLASS_WARLOCK:
             VerifyAndPushSpellCast(spells, SPELL_DEATH_COIL_W, TARGET_VICTIM, 2);
             VerifyAndPushSpellCast(spells, SPELL_FEAR, TARGET_VICTIM, 2);
@@ -1018,6 +1062,12 @@ PlayerAI::TargetedSpell SimpleCharmedPlayerAI::SelectAppropriateCastForSpec()
                 VerifyAndPushSpellCast(spells, SPELL_CORRUPTION, TARGET_VICTIM, 10);
             switch (GetSpec())
             {
+            case SPEC_WARLOCK_SOUL_REAPING:
+                VerifyAndPushSpellCast(spells, SPELL_SHADOW_SLASH, TARGET_NONE, 15);
+                VerifyAndPushSpellCast(spells, SPELL_SOUL_STRIKE, TARGET_VICTIM, 7);
+                VerifyAndPushSpellCast(spells, SPELL_HORRIFIC_STRIKE, TARGET_VICTIM, 5);
+                VerifyAndPushSpellCast(spells, SPELL_EDGE_OF_SHADOWS, TARGET_VICTIM, 10);
+                break;
                 case SPEC_WARLOCK_AFFLICTION:
                     if (Unit* victim = me->GetVictim())
                     {

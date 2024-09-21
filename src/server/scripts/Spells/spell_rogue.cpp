@@ -32,7 +32,7 @@
 #include "SpellHistory.h"
 #include "SpellMgr.h"
 #include "SpellScript.h"
-
+#include "PathGenerator.h"
 enum RogueSpells
 {
     SPELL_ROGUE_BLADE_FLURRY_EXTRA_ATTACK       = 22482,
@@ -60,6 +60,9 @@ enum RogueSpells
 };
 
 // 13877, 33735, (check 51211, 65956) - Blade Flurry
+
+
+
 class spell_rog_blade_flurry : public AuraScript
 {
     PrepareAuraScript(spell_rog_blade_flurry);
@@ -144,6 +147,107 @@ class spell_rog_cheat_death : public AuraScript
         OnEffectAbsorb += AuraEffectAbsorbFn(spell_rog_cheat_death::Absorb, EFFECT_0);
     }
 };
+
+class spell_rog_grappling_hook : public SpellScriptLoader
+{
+public:
+    spell_rog_grappling_hook() : SpellScriptLoader("spell_rog_grappling_hook") { }
+
+    class spell_rog_grappling_hook_SpellScript : public SpellScript
+    {
+        PrepareSpellScript(spell_rog_grappling_hook_SpellScript);
+
+        SpellCastResult CheckElevation()
+        {
+            Unit* caster = GetCaster();
+            if (!caster)
+                return SPELL_FAILED_NOPATH;
+
+            WorldLocation* dest = const_cast<WorldLocation*>(GetExplTargetDest());
+
+            if (caster->HasAuraType(SPELL_AURA_MOD_ROOT))
+                return SPELL_FAILED_ROOTED;
+
+            if (!caster->IsWithinLOS(dest->GetPositionX(), dest->GetPositionY(), dest->GetPositionZ()))
+                return SPELL_FAILED_LINE_OF_SIGHT;
+
+            // battleground <bad> positions
+            if (caster->GetMap()->IsBattleground())
+            {
+                switch (caster->GetMapId())
+                {
+                case 489:
+                    if ((dest->GetPositionZ() >= 375.0f) || (caster->GetPositionZ() <= 361.0f && dest->GetPositionZ() >= 364.0f && dest->GetPositionY() <= 1370.0f)
+                        || (dest->GetPositionY() <= 1266.0f) || (dest->GetPositionX() <= 991.0f && dest->GetPositionZ() >= 368.0f)
+                        || (dest->GetPositionY() <= 1396.0f && dest->GetPositionZ() >= 353.0f) || (dest->GetPositionY() >= 1652.0f && dest->GetPositionZ() >= 354.0f))
+                        return SPELL_FAILED_NOPATH;
+                    break;
+                case 529:
+                    if (caster->GetAreaId() == 3424)
+                        if ((dest->GetPositionX() <= 1199.0f && dest->GetPositionY() <= 1199.0f && dest->GetPositionZ() >= -51.0f) || (dest->GetPositionZ() >= 13.9f))
+                            return SPELL_FAILED_NOPATH;
+                    if (caster->GetAreaId() == 3421)
+                        if ((dest->GetPositionZ() >= -40.0f))
+                            return SPELL_FAILED_NOPATH;
+                    if (caster->GetAreaId() == 3422)
+                        if ((dest->GetPositionZ() >= 18.8f))
+                            return SPELL_FAILED_NOPATH;
+                    break;
+                case 726:
+                    if (((dest->GetPositionX() < 1855.0f && dest->GetPositionX() > 1534.0f) && (dest->GetPositionY() < 183.0f && dest->GetPositionY() > 78.0f) && dest->GetPositionZ() >= -4.8f)
+                        || ((dest->GetPositionX() < 1926.0f && dest->GetPositionX() > 1818.0f) && (dest->GetPositionY() < 510.0f && dest->GetPositionY() > 407.0f) && dest->GetPositionZ() >= -10.0f))
+                        return SPELL_FAILED_NOPATH;
+                    break;
+                case 998:
+                    if ((dest->GetPositionX() < 1733.0f && dest->GetPositionY() > 1394.0f && dest->GetPositionZ() >= 23.4f)
+                        || (dest->GetPositionX() > 1824.0f && dest->GetPositionZ() > 20.4f)
+                        || ((dest->GetPositionX() > 1719.0f && dest->GetPositionX() < 1846.7f) && (dest->GetPositionY() > 1253.0f
+                            && dest->GetPositionY() < 1416.0f) && dest->GetPositionZ() >= 11.0f))
+                        return SPELL_FAILED_NOPATH;
+                    break;
+                case 607:
+                    if (((dest->GetPositionX() < 1475.0f && dest->GetPositionX() > 1383.7f) && (dest->GetPositionY() < -177.0f && dest->GetPositionY() > -262.0f) && dest->GetPositionZ() >= 38.0f)
+                        || ((dest->GetPositionX() < 1468.0f && dest->GetPositionX() > 1357.7f) && (dest->GetPositionY() < 160.0f && dest->GetPositionY() > 59.0f) && dest->GetPositionZ() >= 36.0f)
+                        || ((dest->GetPositionX() < 1262.0f && dest->GetPositionX() > 1158.0f) && (dest->GetPositionY() < 137.0f && dest->GetPositionY() > 29.0f) && dest->GetPositionZ() >= 58.1f)
+                        || ((dest->GetPositionX() < 1277.0f && dest->GetPositionX() > 1169.0f) && (dest->GetPositionY() < -149.0f && dest->GetPositionY() > -272.0f) && dest->GetPositionZ() >= 58.0f)
+                        || ((dest->GetPositionX() < 1092.0f && dest->GetPositionX() > 1012.0f) && (dest->GetPositionY() < -55.0f && dest->GetPositionY() > -154.0f) && dest->GetPositionZ() >= 89.77f))
+                        return SPELL_FAILED_NOPATH;
+                    break;
+                }
+            }
+
+            float limit = 60.0f;
+            PathGenerator* m_path = new PathGenerator(caster);
+            bool result = m_path->CalculatePath(dest->GetPositionX(), dest->GetPositionY(), dest->GetPositionZ(), false);
+            if (m_path->GetPathType() & PATHFIND_SHORT)
+                return SPELL_FAILED_OUT_OF_RANGE;
+            else if (!result || m_path->GetPathType() & PATHFIND_NOPATH)
+                return SPELL_FAILED_NOPATH;
+            else if (m_path->GetTotalLength() > limit)
+                return SPELL_FAILED_OUT_OF_RANGE;
+            return SPELL_CAST_OK;
+        }
+
+        void Register() override
+        {
+            OnCheckCast += SpellCheckCastFn(spell_rog_grappling_hook_SpellScript::CheckElevation);
+        }
+    };
+
+    SpellScript* GetSpellScript() const override
+    {
+        return new spell_rog_grappling_hook_SpellScript();
+    }
+};
+
+
+
+
+
+
+
+
+
 
 // -51664 - Cut to the Chase
 class spell_rog_cut_to_the_chase : public AuraScript
@@ -250,7 +354,7 @@ class spell_rog_deadly_poison : public SpellScript
                     SpellInfo const* spellInfo = sSpellMgr->GetSpellInfo(enchant->EffectArg[s]);
                     if (!spellInfo)
                     {
-                        TC_LOG_ERROR("spells", "Player::CastItemCombatSpell Enchant {}, player (Name: {}, {}) cast unknown spell {}", enchant->ID, player->GetName(), player->GetGUID().ToString(), enchant->EffectArg[s]);
+                        TC_LOG_ERROR("spells", "Player::CastItemCombatSpell Enchant %i, player (Name: %s, %s) cast unknown spell %i", enchant->ID, player->GetName().c_str(), player->GetGUID().ToString().c_str(), enchant->EffectArg[s]);
                         continue;
                     }
 
@@ -433,16 +537,6 @@ class spell_rog_overkill_mos : public AuraScript
         return ValidateSpellInfo({ RemoveSpellId });
     }
 
-    void AfterApply(AuraEffect const* aurEff, AuraEffectHandleModes /*mode*/)
-    {
-        if (Aura* visualAura = GetTarget()->GetAura(RemoveSpellId))
-        {
-            int32 duration = aurEff->GetBase()->GetDuration();
-            visualAura->SetDuration(duration);
-            visualAura->SetMaxDuration(duration);
-        }
-    }
-
     void PeriodicTick(AuraEffect const* /*aurEff*/)
     {
         GetTarget()->RemoveAurasDueToSpell(RemoveSpellId);
@@ -450,7 +544,6 @@ class spell_rog_overkill_mos : public AuraScript
 
     void Register() override
     {
-        AfterEffectApply += AuraEffectApplyFn(spell_rog_overkill_mos::AfterApply, EFFECT_0, SPELL_AURA_PERIODIC_DUMMY, AURA_EFFECT_HANDLE_REAL);
         OnEffectPeriodic += AuraEffectPeriodicFn(spell_rog_overkill_mos::PeriodicTick, EFFECT_0, SPELL_AURA_PERIODIC_DUMMY);
     }
 };
@@ -990,6 +1083,7 @@ void AddSC_rogue_spell_scripts()
     RegisterSpellScript(spell_rog_deadly_brew);
     RegisterSpellScript(spell_rog_deadly_poison);
     new spell_rog_killing_spree();
+    new spell_rog_grappling_hook();
     RegisterSpellScript(spell_rog_nerves_of_steel);
     RegisterSpellScriptWithArgs(spell_rog_overkill_mos<SPELL_ROGUE_OVERKILL_BUFF>, "spell_rog_overkill");
     RegisterSpellScriptWithArgs(spell_rog_overkill_mos<SPELL_ROGUE_MASTER_OF_SUBTLETY_BUFF>, "spell_rog_master_of_subtlety");

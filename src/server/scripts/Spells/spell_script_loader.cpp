@@ -29,6 +29,11 @@ void AddSC_warlock_spell_scripts();
 void AddSC_warrior_spell_scripts();
 void AddSC_quest_spell_scripts();
 void AddSC_item_spell_scripts();
+void AddSC_witch_spell_scripts();
+void AddSC_bard_spell_scripts();
+void AddSC_monk_spell_scripts();
+void AddSC_warden_spell_scripts();
+void AddSC_custom_aura_scripts();
 
 // The name of this function should match:
 // void Add${NameOfDirectory}Scripts()
@@ -47,4 +52,9 @@ void AddSpellsScripts()
     AddSC_warrior_spell_scripts();
     AddSC_quest_spell_scripts();
     AddSC_item_spell_scripts();
+	AddSC_witch_spell_scripts();
+    AddSC_bard_spell_scripts();
+    AddSC_monk_spell_scripts();
+    AddSC_warden_spell_scripts();
+	AddSC_custom_aura_scripts();
 }

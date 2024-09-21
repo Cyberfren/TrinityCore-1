@@ -181,7 +181,7 @@ void Player::ApplySpellPowerBonus(int32 amount, bool apply)
 
     // For speed just update for client
     ApplyModUInt32Value(PLAYER_FIELD_MOD_HEALING_DONE_POS, amount, apply);
-    for (int i = SPELL_SCHOOL_HOLY; i < MAX_SPELL_SCHOOL; ++i)
+    for (int i = 0; i < MAX_SPELL_SCHOOL; ++i)
         ApplyModUInt32Value(PLAYER_FIELD_MOD_DAMAGE_DONE_POS + i, amount, apply);
 }
 
@@ -193,7 +193,7 @@ void Player::UpdateSpellDamageAndHealingBonus()
     SetStatInt32Value(PLAYER_FIELD_MOD_HEALING_DONE_POS, SpellBaseHealingBonusDone(SPELL_SCHOOL_MASK_ALL));
     // Get damage bonus for all schools
     Unit::AuraEffectList const& modDamageAuras = GetAuraEffectsByType(SPELL_AURA_MOD_DAMAGE_DONE);
-    for (uint16 i = SPELL_SCHOOL_HOLY; i < MAX_SPELL_SCHOOL; ++i)
+    for (uint16 i = 0; i < MAX_SPELL_SCHOOL; ++i)
     {
         SetInt32Value(PLAYER_FIELD_MOD_DAMAGE_DONE_NEG + i, std::accumulate(modDamageAuras.begin(), modDamageAuras.end(), 0, [i](int32 negativeMod, AuraEffect const* aurEff)
         {
@@ -354,7 +354,19 @@ void Player::UpdateAttackPowerAndDamage(bool ranged)
             case CLASS_ROGUE:
                 val2 = level + GetStat(STAT_AGILITY) - 10.0f;
                 break;
+            case CLASS_BARD:
+                val2 = level + GetStat(STAT_AGILITY) - 10.0f;
+                break;
+            case CLASS_MONK:
+                val2 = level + GetStat(STAT_AGILITY) - 10.0f;
+                break;
+            case CLASS_WARDEN:
+                val2 = level + GetStat(STAT_AGILITY) - 10.0f;
+                break;
             case CLASS_WARRIOR:
+                val2 = level + GetStat(STAT_AGILITY) - 10.0f;
+                break;
+            case CLASS_WITCH:
                 val2 = level + GetStat(STAT_AGILITY) - 10.0f;
                 break;
             case CLASS_DRUID:
@@ -381,10 +393,20 @@ void Player::UpdateAttackPowerAndDamage(bool ranged)
             case CLASS_PALADIN:
                 val2 = level * 3.0f + GetStat(STAT_STRENGTH) * 2.0f - 20.0f;
                 break;
-            case CLASS_DEATH_KNIGHT:
+            case CLASS_WARDEN:
                 val2 = level * 3.0f + GetStat(STAT_STRENGTH) * 2.0f - 20.0f;
                 break;
+            
+            case CLASS_WARLOCK:
+                val2 = level * 3.0f + GetStat(STAT_STRENGTH) * 2.0f - 20.0f;
+                break;
+            case CLASS_BARD:
+                val2 = level * 2.0f + GetStat(STAT_STRENGTH) + GetStat(STAT_AGILITY) - 20.0f;
+                break;
             case CLASS_ROGUE:
+                val2 = level * 2.0f + GetStat(STAT_STRENGTH) + GetStat(STAT_AGILITY) - 20.0f;
+                break;
+            case CLASS_MONK:
                 val2 = level * 2.0f + GetStat(STAT_STRENGTH) + GetStat(STAT_AGILITY) - 20.0f;
                 break;
             case CLASS_HUNTER:
@@ -420,29 +442,43 @@ void Player::UpdateAttackPowerAndDamage(bool ranged)
 
                 switch (GetShapeshiftForm())
                 {
-                    case FORM_CAT:
-                        val2 = GetLevel() * levelBonus + GetStat(STAT_STRENGTH) * 2.0f + GetStat(STAT_AGILITY) - 20.0f + weaponBonus + m_baseFeralAP;
-                        break;
-                    case FORM_BEAR:
-                    case FORM_DIREBEAR:
-                        val2 = GetLevel() * levelBonus + GetStat(STAT_STRENGTH) * 2.0f - 20.0f + weaponBonus + m_baseFeralAP;
-                        break;
-                    case FORM_MOONKIN:
-                        val2 = GetStat(STAT_STRENGTH) * 2.0f - 20.0f + m_baseFeralAP;
-                        break;
-                    default:
-                        val2 = GetStat(STAT_STRENGTH) * 2.0f - 20.0f;
-                        break;
+                case FORM_CAT:
+                    val2 = GetLevel() * levelBonus + GetStat(STAT_STRENGTH) * 2.0f + GetStat(STAT_AGILITY) - 20.0f + weaponBonus + m_baseFeralAP;
+                    break;
+                case FORM_BEAR:
+                case FORM_DIREBEAR:
+                    val2 = GetLevel() * levelBonus + GetStat(STAT_STRENGTH) * 2.0f - 20.0f + weaponBonus + m_baseFeralAP;
+                    break;
+                case FORM_MOONKIN:
+                    val2 = GetStat(STAT_STRENGTH) * 2.0f - 20.0f + m_baseFeralAP;
+                    break;
+                default:
+                    val2 = GetStat(STAT_STRENGTH) * 2.0f - 20.0f;
+                    break;
                 }
-                break;
             }
+                break;
+
+               case CLASS_WITCH:
+                      switch (GetShapeshiftForm())
+                        {
+                        case FORM_FORESTWALKING:
+                            val2 = level * 2.0f + GetStat(STAT_STRENGTH) * 2.0f + GetStat(STAT_AGILITY) - 20.0f;
+                            break;
+                        default:
+                            val2 = GetStat(STAT_STRENGTH) * 2.0f - 20.0f;
+                            break;
+                        
+                        }
+                break;
+            
+            case CLASS_NECROMANCER:
+                val2 = GetStat(STAT_STRENGTH) - 10.0f;
+                break;
             case CLASS_MAGE:
                 val2 = GetStat(STAT_STRENGTH) - 10.0f;
                 break;
             case CLASS_PRIEST:
-                val2 = GetStat(STAT_STRENGTH) - 10.0f;
-                break;
-            case CLASS_WARLOCK:
                 val2 = GetStat(STAT_STRENGTH) - 10.0f;
                 break;
         }
@@ -695,7 +731,11 @@ float const m_diminishing_k[MAX_CLASSES] =
     0.9830f,  // Mage
     0.9830f,  // Warlock
     0.0f,     // ??
-    0.9720f   // Druid
+    0.9720f,   // Druid
+    0.9720f,   // Druid
+    0.9880f,  // Shaman
+    0.9830f,  // Mage
+    0.9830f  // Warlock
 };
 
 // helper function
@@ -733,6 +773,10 @@ float const miss_cap[MAX_CLASSES] =
     16.00f,     // Mage    //?
     16.00f,     // Warlock //?
     0.0f,       // ??
+    16.00f,      // Druid   //?
+    16.00f,     // Rogue   //?
+    16.00f,     // Priest  //?
+    16.00f,     // DK      //correct
     16.00f      // Druid   //?
 };
 
@@ -757,9 +801,14 @@ float const parry_cap[MAX_CLASSES] =
     47.003525f,     // DK
     145.560408f,    // Shaman
     0.0f,           // Mage
-    0.0f,           // Warlock
+    145.560408f,    // Shaman
     0.0f,           // ??
-    0.0f            // Druid
+    0.0f,            // Druid
+    145.560408f,    // Shaman
+    145.560408f,    // Shaman
+    47.003525f,     // Paladin
+    145.560408f,    // Hunter
+
 };
 
 void Player::UpdateParryPercentage()
@@ -799,9 +848,13 @@ float const dodge_cap[MAX_CLASSES] =
     88.129021f,     // DK
     145.560408f,    // Shaman
     150.375940f,    // Mage
-    150.375940f,    // Warlock
+    145.375940f,    // Warlock
     0.0f,           // ??
-    116.890707f     // Druid
+    116.890707f,     // Druid
+    116.890707f,     // Druid
+    145.560408f,    // Rogue
+     88.129021f,     // Paladin
+    145.560408f,    // Rogue
 };
 
 void Player::UpdateDodgePercentage()
@@ -1241,8 +1294,19 @@ void Creature::CalculateMinMaxDamage(WeaponAttackType attType, bool normalized, 
 #define ENTRY_WATER_ELEMENTAL   510
 #define ENTRY_TREANT            1964
 #define ENTRY_FIRE_ELEMENTAL    15438
+#define ENTRY_AIR_ELEMENTAL    54503
 #define ENTRY_GHOUL             26125
 #define ENTRY_BLOODWORM         28017
+#define ENTRY_DRYAD             44203
+#define ENTRY_WISP              44205
+#define ENTRY_TREANTPET          44204
+#define ENTRY_FAY_DRAGON        44200
+#define ENTRY_SKELETON           44211
+#define ENTRY_NGHOUL            44212
+#define ENTRY_REAVER            44216
+#define ENTRY_JUNGLE_CAT          44214
+#define ENTRY_JUNGLE_RAPTOR       44215
+#define ENTRY_JUNGLE_PANTHER     44213
 
 bool Guardian::UpdateStats(Stats stat)
 {
@@ -1257,15 +1321,15 @@ bool Guardian::UpdateStats(Stats stat)
     Unit* owner = GetOwner();
     // Handle Death Knight Glyphs and Talents
     float mod = 0.75f;
-    if ((IsPetGhoul() || IsRisenAlly()) && (stat == STAT_STAMINA || stat == STAT_STRENGTH))
+    if ((IsPetGhoul() || IsRisenAlly() || IsPetjRap() || IsPetReaver() || IsPetjPat() || IsPetjCat() || IsPetnGhoul() || IsTreant()) && (stat == STAT_STAMINA || stat == STAT_STRENGTH || stat == STAT_AGILITY))
     {
         if (stat == STAT_STAMINA)
             mod = 0.3f; // Default Owner's Stamina scale
         else
-            mod = 0.7f; // Default Owner's Strength scale
+            mod = 0.5f; // Default Owner's Strength scale
 
         // Check just if owner has Ravenous Dead since it's effect is not an aura
-        AuraEffect const* aurEff = owner->GetAuraEffect(SPELL_AURA_MOD_TOTAL_STAT_PERCENTAGE, SPELLFAMILY_DEATHKNIGHT, 3010, 0);
+        AuraEffect const* aurEff = owner->GetAuraEffect(SPELL_AURA_MOD_TOTAL_STAT_PERCENTAGE, SPELLFAMILY_NECROMANCER, 3010, 0);
         if (aurEff)
         {
             SpellInfo const* spellInfo = aurEff->GetSpellInfo();                                                // Then get the SpellProto and add the dummy effect value
@@ -1307,7 +1371,7 @@ bool Guardian::UpdateStats(Stats stat)
                                                             //warlock's and mage's pets gain 30% of owner's intellect
     else if (stat == STAT_INTELLECT)
     {
-        if (owner->GetClass() == CLASS_WARLOCK || owner->GetClass() == CLASS_MAGE)
+        if (owner->GetClass() == CLASS_WARLOCK || owner->GetClass() == CLASS_MAGE || owner->GetClass() == CLASS_DRUID)
         {
             ownersBonus = CalculatePct(owner->GetStat(stat), 30);
             value += ownersBonus;
@@ -1403,6 +1467,16 @@ void Guardian::UpdateMaxHealth()
         case ENTRY_FELHUNTER:   multiplicator = 9.5f;   break;
         case ENTRY_FELGUARD:    multiplicator = 11.0f;  break;
         case ENTRY_BLOODWORM:   multiplicator = 1.0f;   break;
+        case ENTRY_FAY_DRAGON:  multiplicator = 6.1f;   break;
+        case ENTRY_DRYAD:       multiplicator = 7.0f;  break;
+        case ENTRY_TREANTPET:      multiplicator = 12.0f;  break;
+        case ENTRY_WISP:        multiplicator = 4.0f;  break;
+        case ENTRY_REAVER:    multiplicator = 11.0f;  break;
+        case ENTRY_NGHOUL:    multiplicator = 11.0f;  break;
+        case ENTRY_SKELETON:    multiplicator = 8.0f;  break;
+        case ENTRY_JUNGLE_CAT:      multiplicator = 14.0f;  break;
+        case ENTRY_JUNGLE_RAPTOR:      multiplicator = 11.0f;  break;
+        case ENTRY_JUNGLE_PANTHER:      multiplicator = 10.0f;  break;
         default:                multiplicator = 10.0f;  break;
     }
 
@@ -1426,6 +1500,10 @@ void Guardian::UpdateMaxPower(Powers power)
         case ENTRY_IMP:         multiplicator = 4.95f;  break;
         case ENTRY_VOIDWALKER:
         case ENTRY_SUCCUBUS:
+        case ENTRY_SKELETON:
+        case ENTRY_DRYAD:
+        case ENTRY_FAY_DRAGON:
+        case ENTRY_WISP:
         case ENTRY_FELHUNTER:
         case ENTRY_FELGUARD:    multiplicator = 11.5f;  break;
         default:                multiplicator = 15.0f;  break;
@@ -1550,6 +1628,12 @@ void Guardian::UpdateDamagePhysical(WeaponAttackType attType)
             int32 spellDmg = m_owner->GetInt32Value(PLAYER_FIELD_MOD_DAMAGE_DONE_POS + AsUnderlyingType(SPELL_SCHOOL_FIRE)) - m_owner->GetInt32Value(PLAYER_FIELD_MOD_DAMAGE_DONE_NEG + AsUnderlyingType(SPELL_SCHOOL_FIRE));
             if (spellDmg > 0)
                 bonusDamage = spellDmg * 0.4f;
+        }
+        else if (GetEntry() == ENTRY_AIR_ELEMENTAL)
+        {
+            int32 spellDmg = m_owner->GetInt32Value(PLAYER_FIELD_MOD_DAMAGE_DONE_POS + AsUnderlyingType(SPELL_SCHOOL_NATURE)) - m_owner->GetInt32Value(PLAYER_FIELD_MOD_DAMAGE_DONE_NEG + AsUnderlyingType(SPELL_SCHOOL_NATURE));
+            if (spellDmg > 0)
+                bonusDamage = spellDmg * 0.6f;
         }
     }
 
