@@ -213,7 +213,7 @@ static const uint32 PlayerSpecializationIconicSpells[MAX_CLASSES][MAX_TALENT_TRE
         {SPELL_GUARDIAN_SPIRIT, PASSIVE_SPIRIT_REDEMPTION, SPELL_DESPERATE_PRAYER}, // Holy
         {SPELL_VAMPIRIC_TOUCH, SPELL_SHADOWFORM, SPELL_VAMPIRIC_EMBRACE} // Shadow
     },
-    { // CLASS_DEATH_KNIGHT
+    { // CLASS_NECROMANCER
         {SPELL_HEART_STRIKE, SPELL_HYSTERIA, SPELL_RUNE_TAP}, // Blood
         {SPELL_HOWLING_BLAST, SPELL_FROST_STRIKE, PASSIVE_ICY_TALONS}, // Frost
         {SPELL_SCOURGE_STRIKE, PASSIVE_MASTER_OF_GHOUL, PASSIVE_UNHOLY_BLIGHT} // Unholy
@@ -271,7 +271,7 @@ bool Trinity::Helpers::Entity::IsPlayerHealer(Player const* who)
         case CLASS_WARRIOR:
         case CLASS_HUNTER:
         case CLASS_ROGUE:
-        case CLASS_DEATH_KNIGHT:
+        case CLASS_NECROMANCER:
         case CLASS_MAGE:
         case CLASS_WARLOCK:
         default:
@@ -297,7 +297,7 @@ bool Trinity::Helpers::Entity::IsPlayerRangedAttacker(Player const* who)
         case CLASS_WARRIOR:
         case CLASS_PALADIN:
         case CLASS_ROGUE:
-        case CLASS_DEATH_KNIGHT:
+        case CLASS_NECROMANCER:
         default:
             return false;
         case CLASS_MAGE:

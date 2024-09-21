@@ -75,6 +75,7 @@ struct boss_vancleef : public BossAI
         {
             if (victim->GetTypeId() == TYPEID_PLAYER)
                 Talk(SAY_KILL);
+            SummonBlackguards();
         }
 
         void EnterEvadeMode(EvadeReason /*why*/) override
@@ -91,7 +92,7 @@ struct boss_vancleef : public BossAI
 
         void DamageTaken(Unit* /*attacker*/, uint32& /*damage*/, DamageEffectType /*damageType*/, SpellInfo const* /*spellInfo = nullptr*/) override
         {
-            if (!_guardsCalled && HealthBelowPct(50))
+            if (!_guardsCalled && HealthBelowPct(90))
             {
                 Talk(SAY_SUMMON);
                 DoCastSelf(SPELL_VANCLEEFS_ALLIES);
@@ -103,12 +104,12 @@ struct boss_vancleef : public BossAI
                 Talk(SAY_THREE);
                 _health25 = true;
             }
-            else if (!_health33 && HealthBelowPct(33))
+            else if (!_health33 && HealthBelowPct(50))
             {
                 Talk(SAY_TWO);
                 _health33 = true;
             }
-            else if (!_health66 && HealthBelowPct(66))
+            else if (!_health66 && HealthBelowPct(75))
             {
                 Talk(SAY_ONE);
                 _health66 = true;

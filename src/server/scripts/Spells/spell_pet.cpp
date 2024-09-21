@@ -16,7 +16,7 @@
  */
 
 /*
- * Scripts for spells with SPELLFAMILY_DEATHKNIGHT and SPELLFAMILY_GENERIC spells used by deathknight players.
+ * Scripts for spells with SPELLFAMILY_NECROMANCER and SPELLFAMILY_GENERIC spells used by deathknight players.
  * Ordered alphabetically using scriptname.
  * Scriptnames of files in this file should be prefixed with "spell_dk_".
  */
@@ -61,15 +61,33 @@ enum WarlockPetCalculate
      SPELL_WARLOCK_GLYPH_OF_VOIDWALKER  = 56247,
 };
 
-enum DKPetCalculate
+enum DruidPetCalculate
 {
-    SPELL_DEATH_KNIGHT_RUNE_WEAPON_02   = 51906,
-    SPELL_DEATH_KNIGHT_PET_SCALING_01   = 54566,
-    SPELL_DEATH_KNIGHT_PET_SCALING_02   = 51996,
-    SPELL_DEATH_KNIGHT_PET_SCALING_03   = 61697,
-    SPELL_NIGHT_OF_THE_DEAD             = 55620,
-    ENTRY_ARMY_OF_THE_DEAD_GHOUL        = 24207,
-    SPELL_DEATH_KNIGHT_GLYPH_OF_GHOUL   = 58686,
+    SPELL_DRUID_PET_SCALING_01   = 54566,
+    SPELL_DRUID_PET_SCALING_02   = 51996,
+    SPELL_DRUID_PET_SCALING_03   = 61697,
+    ENTRY_FAERIE_DRAGON = 44200,
+    ENTRY_DRYAD = 44203,
+    ENTRY_TREANT = 44204,
+    ENTRY_WISP = 44205,
+};
+enum NecromancerPetCalculate
+{
+    SPELL_NECRO_PET_SCALING_01 = 954566,
+    SPELL_NECRO_PET_SCALING_02 = 851996,
+    SPELL_NECRO_PET_SCALING_03 = 761697,
+    ENTRY_SKELETON = 44211,
+    ENTRY_REAVER = 44212,
+    ENTRY_NGHOUL = 44216,
+};
+enum WitchPetCalculate
+{
+    SPELL_WITCH_PET_SCALING_01   = 554566,
+    SPELL_WITCH_PET_SCALING_02   = 451996,
+    SPELL_WITCH_PET_SCALING_03   = 361697,
+    ENTRY_PANTHER = 44213,
+    ENTRY_TIGER = 44214,
+    ENTRY_RAPTOR = 44215,
 };
 
 enum ShamanPetCalculate
@@ -198,14 +216,16 @@ class spell_gen_pet_calculate : public SpellScriptLoader
                     case SPELL_PET_PASSIVE_CRIT:
                         DoEffectCalcAmount += AuraEffectCalcAmountFn(spell_gen_pet_calculate_AuraScript::CalculateAmountCritSpell, EFFECT_0, SPELL_AURA_MOD_SPELL_CRIT_CHANCE);
                         DoEffectCalcAmount += AuraEffectCalcAmountFn(spell_gen_pet_calculate_AuraScript::CalculateAmountCritMelee, EFFECT_1, SPELL_AURA_MOD_WEAPON_CRIT_PERCENT);
-                        break;
+                        break;              
                     case SPELL_WARLOCK_PET_SCALING_05:
+              
                     case SPELL_HUNTER_PET_SCALING_04:
                         DoEffectCalcAmount += AuraEffectCalcAmountFn(spell_gen_pet_calculate_AuraScript::CalculateAmountMeleeHit, EFFECT_0, SPELL_AURA_MOD_HIT_CHANCE);
                         DoEffectCalcAmount += AuraEffectCalcAmountFn(spell_gen_pet_calculate_AuraScript::CalculateAmountSpellHit, EFFECT_1, SPELL_AURA_MOD_SPELL_HIT_CHANCE);
                         DoEffectCalcAmount += AuraEffectCalcAmountFn(spell_gen_pet_calculate_AuraScript::CalculateAmountExpertise, EFFECT_2, SPELL_AURA_MOD_EXPERTISE);
                         break;
-                    case SPELL_DEATH_KNIGHT_PET_SCALING_03:
+                        
+                    case SPELL_DRUID_PET_SCALING_03:
 //                    case SPELL_SHAMAN_PET_HIT:
                         DoEffectCalcAmount += AuraEffectCalcAmountFn(spell_gen_pet_calculate_AuraScript::CalculateAmountMeleeHit, EFFECT_0, SPELL_AURA_MOD_HIT_CHANCE);
                         DoEffectCalcAmount += AuraEffectCalcAmountFn(spell_gen_pet_calculate_AuraScript::CalculateAmountSpellHit, EFFECT_1, SPELL_AURA_MOD_SPELL_HIT_CHANCE);
@@ -275,10 +295,30 @@ public:
                             healthMod = _tempBonus * 11;
                             break;
                         case ENTRY_SUCCUBUS:
+                        case ENTRY_SKELETON:
                             healthMod = uint32(_tempBonus * 9.1f);
                             break;
-                        case ENTRY_FELHUNTER:
+                        case ENTRY_FELHUNTER:                   
                             healthMod = uint32(_tempBonus * 9.5f);
+                            break;
+                        case ENTRY_DRYAD:
+                            healthMod = uint32(_tempBonus * 9.1f);
+                            break;
+                        case ENTRY_FAERIE_DRAGON:
+                            healthMod = uint32(_tempBonus * 9.5f);
+                            break;
+                        case ENTRY_WISP:
+                            healthMod = uint32(_tempBonus * 8.4f);
+                            break;
+                        case ENTRY_TREANT:
+                        case ENTRY_PANTHER:
+                        case ENTRY_RAPTOR:
+                        case ENTRY_REAVER:
+                        case ENTRY_NGHOUL:
+                            healthMod = uint32(_tempBonus * 1.1f);
+                            break;
+                        case ENTRY_TIGER:
+                            healthMod = uint32(_tempBonus * 2.1f);
                             break;
                         default:
                             healthMod = 0;
@@ -306,8 +346,9 @@ public:
 
                 if (Unit* owner = pet->ToPet()->GetOwner())
                 {
-                    int32 fire  = owner->GetInt32Value(PLAYER_FIELD_MOD_DAMAGE_DONE_POS + AsUnderlyingType(SPELL_SCHOOL_FIRE)) - owner->GetInt32Value(PLAYER_FIELD_MOD_DAMAGE_DONE_NEG + AsUnderlyingType(SPELL_SCHOOL_FIRE));
+                    int32 fire = owner->GetInt32Value(PLAYER_FIELD_MOD_DAMAGE_DONE_POS + AsUnderlyingType(SPELL_SCHOOL_FIRE)) - owner->GetInt32Value(PLAYER_FIELD_MOD_DAMAGE_DONE_NEG + AsUnderlyingType(SPELL_SCHOOL_FIRE));
                     int32 shadow = owner->GetInt32Value(PLAYER_FIELD_MOD_DAMAGE_DONE_POS + AsUnderlyingType(SPELL_SCHOOL_SHADOW)) - owner->GetInt32Value(PLAYER_FIELD_MOD_DAMAGE_DONE_NEG + AsUnderlyingType(SPELL_SCHOOL_SHADOW));
+
                     int32 maximum  = (fire > shadow) ? fire : shadow;
                     if (maximum < 0)
                         maximum = 0;
@@ -334,7 +375,9 @@ public:
                     if (Unit* owner = pet->ToPet()->GetOwner())
                     {
                         //the damage bonus used for pets is either fire or shadow damage, whatever is higher
-                        int32 fire  = owner->GetInt32Value(PLAYER_FIELD_MOD_DAMAGE_DONE_POS + AsUnderlyingType(SPELL_SCHOOL_FIRE)) - owner->GetInt32Value(PLAYER_FIELD_MOD_DAMAGE_DONE_NEG + AsUnderlyingType(SPELL_SCHOOL_FIRE));
+
+
+                        int32 fire = owner->GetInt32Value(PLAYER_FIELD_MOD_DAMAGE_DONE_POS + AsUnderlyingType(SPELL_SCHOOL_FIRE)) - owner->GetInt32Value(PLAYER_FIELD_MOD_DAMAGE_DONE_NEG + AsUnderlyingType(SPELL_SCHOOL_FIRE));
                         int32 shadow = owner->GetInt32Value(PLAYER_FIELD_MOD_DAMAGE_DONE_POS + AsUnderlyingType(SPELL_SCHOOL_SHADOW)) - owner->GetInt32Value(PLAYER_FIELD_MOD_DAMAGE_DONE_NEG + AsUnderlyingType(SPELL_SCHOOL_SHADOW));
                         int32 maximum  = (fire > shadow) ? fire : shadow;
                         float bonusDamage = 0.0f;
@@ -413,15 +456,31 @@ public:
                     uint32 baseMana = pInfo->mana;
                     switch (pet->GetEntry())
                     {
+                    case ENTRY_SKELETON:
                     case ENTRY_IMP:
                         manaMod = uint32(_tempBonus * 4.9f);
+                        break;
+                    case ENTRY_DRYAD:
+                        manaMod = uint32(_tempBonus * 5.4f);
+                        break;
+                    case ENTRY_FAERIE_DRAGON:
+                        manaMod = uint32(_tempBonus * 2.2f);
+                        break;
+                    case ENTRY_WISP:
+                        manaMod = uint32(_tempBonus * 1.9f);
+                        break;
+                    case ENTRY_TREANT:
+                        manaMod = uint32(_tempBonus * 1.1f);
                         break;
                     case ENTRY_VOIDWALKER:
                     case ENTRY_SUCCUBUS:
                     case ENTRY_FELHUNTER:
                     case ENTRY_FELGUARD:
-                        manaMod = uint32(_tempBonus * 11.5f);
-                        break;
+                    case ENTRY_PANTHER:
+                    case ENTRY_TIGER:
+                    case ENTRY_REAVER:
+                    case ENTRY_RAPTOR:
+                    case ENTRY_NGHOUL:
                     default:
                         manaMod = 0;
                         break;
@@ -766,8 +825,6 @@ public:
                     amount += -16;
                     break;
                 case ENTRY_FELHUNTER:
-                    amount += -20;
-                    break;
                 case ENTRY_SUCCUBUS:
                 case ENTRY_FELGUARD:
                     amount += 5;
@@ -952,6 +1009,7 @@ public:
 
                 float mod = 1.0f;                                                 //Hunter contribution modifier
                 float bonusAP = 0.0f;
+                float strAP = 0.0f;
 
                 PetSpellMap::const_iterator itr = (pet->ToPet()->m_spells.find(62758)); // Wild Hunt rank 1
                 if (itr == pet->ToPet()->m_spells.end())
@@ -964,8 +1022,9 @@ public:
                 }
 
                 bonusAP = owner->GetTotalAttackPowerValue(RANGED_ATTACK) * 0.22f * mod;
+                strAP = owner->GetTotalStatValue(STAT_STRENGTH) * mod;
 
-                amount += bonusAP;
+                amount += strAP + bonusAP;
             }
         }
 
@@ -1443,88 +1502,26 @@ public:
     }
 };
 
-class spell_dk_avoidance_passive : public SpellScriptLoader
+class spell_dru_pet_scaling_01 : public SpellScriptLoader
 {
 public:
-    spell_dk_avoidance_passive() : SpellScriptLoader("spell_dk_avoidance_passive") { }
+    spell_dru_pet_scaling_01() : SpellScriptLoader("spell_dru_pet_scaling_01") { }
 
-    class spell_dk_avoidance_passive_AuraScript : public AuraScript
+    class spell_dru_pet_scaling_01_AuraScript : public AuraScript
     {
-        PrepareAuraScript(spell_dk_avoidance_passive_AuraScript);
-
-        bool Load() override
-        {
-            if (!GetCaster() || !GetCaster()->GetOwner() || GetCaster()->GetOwner()->GetTypeId() != TYPEID_PLAYER)
-                return false;
-            return true;
-        }
-
-        void CalculateAvoidanceAmount(AuraEffect const* /* aurEff */, int32& amount, bool& /*canBeRecalculated*/)
-        {
-            if (Unit* pet = GetUnitOwner())
-            {
-                if (Unit* owner = pet->GetOwner())
-                {
-                    // Army of the dead ghoul
-                    if (pet->GetEntry() == ENTRY_ARMY_OF_THE_DEAD_GHOUL)
-                        amount = -90;
-                    // Night of the dead
-                    else if (Aura* aur = owner->GetAuraOfRankedSpell(SPELL_NIGHT_OF_THE_DEAD))
-                        amount = aur->GetSpellInfo()->GetEffect(EFFECT_2).CalcValue();
-                }
-            }
-        }
-
-        void Register() override
-        {
-            DoEffectCalcAmount += AuraEffectCalcAmountFn(spell_dk_avoidance_passive_AuraScript::CalculateAvoidanceAmount, EFFECT_0, SPELL_AURA_MOD_CREATURE_AOE_DAMAGE_AVOIDANCE);
-        }
-    };
-
-    AuraScript* GetAuraScript() const override
-    {
-        return new spell_dk_avoidance_passive_AuraScript();
-    }
-};
-
-class spell_dk_pet_scaling_01 : public SpellScriptLoader
-{
-public:
-    spell_dk_pet_scaling_01() : SpellScriptLoader("spell_dk_pet_scaling_01") { }
-
-    class spell_dk_pet_scaling_01_AuraScript : public AuraScript
-    {
-        PrepareAuraScript(spell_dk_pet_scaling_01_AuraScript);
-
-        bool Load() override
-        {
-            if (!GetCaster() || !GetCaster()->GetOwner() || GetCaster()->GetOwner()->GetTypeId() != TYPEID_PLAYER)
-                return false;
-            return true;
-        }
+        PrepareAuraScript(spell_dru_pet_scaling_01_AuraScript);
 
         void CalculateStaminaAmount(AuraEffect const* /* aurEff */, int32& amount, bool& /*canBeRecalculated*/)
         {
-            if (Unit* pet = GetUnitOwner())
+            if (!GetCaster() || !GetCaster()->GetOwner())
+                return;
+            if (Player* owner = GetCaster()->GetOwner()->ToPlayer())
             {
-                if (pet->IsGuardian())
-                {
-                    if (Unit* owner = pet->GetOwner())
-                    {
-                        float mod = 0.3f;
 
-                        // Ravenous Dead. Check just if owner has Ravenous Dead since it's effect is not an aura
-                        if (AuraEffect const* aurEff = owner->GetAuraEffect(SPELL_AURA_MOD_TOTAL_STAT_PERCENTAGE, SPELLFAMILY_DEATHKNIGHT, 3010, 0))
-                            mod += aurEff->GetSpellInfo()->GetEffect(EFFECT_1).CalcValue()/100;                 // Ravenous Dead edits the original scale
 
-                        // Glyph of the Ghoul
-                        if (AuraEffect const* aurEff = owner->GetAuraEffect(SPELL_DEATH_KNIGHT_GLYPH_OF_GHOUL, 0))
-                            mod += aurEff->GetAmount()/100;
-
-                        float ownerBonus = float(owner->GetStat(STAT_STAMINA)) * mod;
-                        amount += ownerBonus;
-                    }
-                }
+                float mod = 0.5f;                                                  // Glyph of the Ghoul adds a flat value to the scale mod
+                float ownerBonus = float(owner->GetStat(STAT_STAMINA)) * mod;
+                amount += ownerBonus;
             }
         }
 
@@ -1543,40 +1540,37 @@ public:
 
         void CalculateStrengthAmount(AuraEffect const* /* aurEff */, int32& amount, bool& /*canBeRecalculated*/)
         {
-            if (Unit* pet = GetUnitOwner())
+            if (!GetCaster() || !GetCaster()->GetOwner())
+                return;
+            if (Player* owner = GetCaster()->GetOwner()->ToPlayer())
             {
-                if (!pet->IsGuardian())
-                    return;
 
-                Unit* owner = pet->GetOwner();
-                if (!owner)
-                    return;
-
-                float mod = 0.7f;
-
-                // Ravenous Dead
-                AuraEffect const* aurEff = nullptr;
-                // Check just if owner has Ravenous Dead since it's effect is not an aura
-                aurEff = owner->GetAuraEffect(SPELL_AURA_MOD_TOTAL_STAT_PERCENTAGE, SPELLFAMILY_DEATHKNIGHT, 3010, 0);
-                if (aurEff)
-                {
-                    mod += CalculatePct(mod, aurEff->GetSpellInfo()->GetEffect(EFFECT_1).CalcValue());                 // Ravenous Dead edits the original scale
-                }
-                // Glyph of the Ghoul
-                aurEff = owner->GetAuraEffect(58686, 0);
-                if (aurEff)
-                    mod += CalculatePct(1.0f, aurEff->GetAmount());                                                    // Glyph of the Ghoul adds a flat value to the scale mod
+                float mod = 0.7f;                                                  // Glyph of the Ghoul adds a flat value to the scale mod
                 float ownerBonus = float(owner->GetStat(STAT_STRENGTH)) * mod;
+                amount += ownerBonus;
+            }
+        }
+
+        void CalculateAgilityAmount(AuraEffect const* /* aurEff */, int32& amount, bool& /*canBeRecalculated*/)
+        {
+            if (!GetCaster() || !GetCaster()->GetOwner())
+                return;
+            if (Player* owner = GetCaster()->GetOwner()->ToPlayer())
+            {
+
+                float mod = 0.7f;                                                  // Glyph of the Ghoul adds a flat value to the scale mod
+                float ownerBonus = float(owner->GetStat(STAT_AGILITY)) * mod;
                 amount += ownerBonus;
             }
         }
 
         void Register() override
         {
-            OnEffectRemove += AuraEffectRemoveFn(spell_dk_pet_scaling_01_AuraScript::RemoveEffect, EFFECT_0, SPELL_AURA_MOD_STAT, AURA_EFFECT_HANDLE_CHANGE_AMOUNT_MASK);
-            AfterEffectApply += AuraEffectApplyFn(spell_dk_pet_scaling_01_AuraScript::ApplyEffect, EFFECT_0, SPELL_AURA_MOD_STAT, AURA_EFFECT_HANDLE_CHANGE_AMOUNT_MASK);
-            DoEffectCalcAmount += AuraEffectCalcAmountFn(spell_dk_pet_scaling_01_AuraScript::CalculateStaminaAmount, EFFECT_0, SPELL_AURA_MOD_STAT);
-            DoEffectCalcAmount += AuraEffectCalcAmountFn(spell_dk_pet_scaling_01_AuraScript::CalculateStrengthAmount, EFFECT_1, SPELL_AURA_MOD_STAT);
+            OnEffectRemove += AuraEffectRemoveFn(spell_dru_pet_scaling_01_AuraScript::RemoveEffect, EFFECT_0, SPELL_AURA_MOD_STAT, AURA_EFFECT_HANDLE_CHANGE_AMOUNT_MASK);
+            AfterEffectApply += AuraEffectApplyFn(spell_dru_pet_scaling_01_AuraScript::ApplyEffect, EFFECT_0, SPELL_AURA_MOD_STAT, AURA_EFFECT_HANDLE_CHANGE_AMOUNT_MASK);
+            DoEffectCalcAmount += AuraEffectCalcAmountFn(spell_dru_pet_scaling_01_AuraScript::CalculateStaminaAmount, EFFECT_0, SPELL_AURA_MOD_STAT);
+            DoEffectCalcAmount += AuraEffectCalcAmountFn(spell_dru_pet_scaling_01_AuraScript::CalculateStrengthAmount, EFFECT_1, SPELL_AURA_MOD_STAT);
+            DoEffectCalcAmount += AuraEffectCalcAmountFn(spell_dru_pet_scaling_01_AuraScript::CalculateAgilityAmount, EFFECT_2, SPELL_AURA_MOD_STAT);
         }
 
         uint32 _tempHealth = 0;
@@ -1584,25 +1578,18 @@ public:
 
     AuraScript* GetAuraScript() const override
     {
-        return new spell_dk_pet_scaling_01_AuraScript();
+        return new spell_dru_pet_scaling_01_AuraScript();
     }
 };
 
-class spell_dk_pet_scaling_02 : public SpellScriptLoader
+class spell_dru_pet_scaling_02 : public SpellScriptLoader
 {
 public:
-    spell_dk_pet_scaling_02() : SpellScriptLoader("spell_dk_pet_scaling_02") { }
+    spell_dru_pet_scaling_02() : SpellScriptLoader("spell_dru_pet_scaling_02") { }
 
-    class spell_dk_pet_scaling_02_AuraScript : public AuraScript
+    class spell_dru_pet_scaling_02_AuraScript : public AuraScript
     {
-        PrepareAuraScript(spell_dk_pet_scaling_02_AuraScript);
-
-        bool Load() override
-        {
-            if (!GetCaster() || !GetCaster()->GetOwner() || GetCaster()->GetOwner()->GetTypeId() != TYPEID_PLAYER)
-                return false;
-            return true;
-        }
+        PrepareAuraScript(spell_dru_pet_scaling_02_AuraScript);
 
         void CalculateAmountMeleeHaste(AuraEffect const* /* aurEff */, int32& amount, bool& /*canBeRecalculated*/)
         {
@@ -1618,34 +1605,39 @@ public:
                 amount += int32(HasteMelee);
             }
         }
+        void CalculateIntellectAmount(AuraEffect const* /* aurEff */, int32& amount, bool& /*canBeRecalculated*/)
+        {
+            if (!GetCaster() || !GetCaster()->GetOwner())
+                return;
+            if (Player* owner = GetCaster()->GetOwner()->ToPlayer())
+            {
+                float mod = 0.7f;                                                  // Glyph of the Ghoul adds a flat value to the scale mod
+                float ownerBonus = float(owner->GetStat(STAT_INTELLECT)) * mod;
+                amount += ownerBonus;
+            }
+        }
 
         void Register() override
         {
-            DoEffectCalcAmount += AuraEffectCalcAmountFn(spell_dk_pet_scaling_02_AuraScript::CalculateAmountMeleeHaste, EFFECT_1, SPELL_AURA_MELEE_SLOW);
+            DoEffectCalcAmount += AuraEffectCalcAmountFn(spell_dru_pet_scaling_02_AuraScript::CalculateAmountMeleeHaste, EFFECT_1, SPELL_AURA_MELEE_SLOW);
+            DoEffectCalcAmount += AuraEffectCalcAmountFn(spell_dru_pet_scaling_02_AuraScript::CalculateAmountMeleeHaste, EFFECT_2, SPELL_AURA_MOD_STAT);
         }
     };
 
     AuraScript* GetAuraScript() const override
     {
-        return new spell_dk_pet_scaling_02_AuraScript();
+        return new spell_dru_pet_scaling_02_AuraScript();
     }
 };
 
-class spell_dk_pet_scaling_03 : public SpellScriptLoader
+class spell_dru_pet_scaling_03 : public SpellScriptLoader
 {
 public:
-    spell_dk_pet_scaling_03() : SpellScriptLoader("spell_dk_pet_scaling_03") { }
+    spell_dru_pet_scaling_03() : SpellScriptLoader("spell_dru_pet_scaling_03") { }
 
-    class spell_dk_pet_scaling_03_AuraScript : public AuraScript
+    class spell_dru_pet_scaling_03_AuraScript : public AuraScript
     {
-        PrepareAuraScript(spell_dk_pet_scaling_03_AuraScript);
-
-        bool Load() override
-        {
-            if (!GetCaster() || !GetCaster()->GetOwner() || GetCaster()->GetOwner()->GetTypeId() != TYPEID_PLAYER)
-                return false;
-            return true;
-        }
+        PrepareAuraScript(spell_dru_pet_scaling_03_AuraScript);
 
         void CalculateAmountMeleeHit(AuraEffect const* /* aurEff */, int32& amount, bool& /*canBeRecalculated*/)
         {
@@ -1683,77 +1675,16 @@ public:
 
         void Register() override
         {
-            DoEffectCalcAmount += AuraEffectCalcAmountFn(spell_dk_pet_scaling_03_AuraScript::CalculateAmountMeleeHit, EFFECT_0, SPELL_AURA_MOD_HIT_CHANCE);
-            DoEffectCalcAmount += AuraEffectCalcAmountFn(spell_dk_pet_scaling_03_AuraScript::CalculateAmountSpellHit, EFFECT_1, SPELL_AURA_MOD_SPELL_HIT_CHANCE);
+            DoEffectCalcAmount += AuraEffectCalcAmountFn(spell_dru_pet_scaling_03_AuraScript::CalculateAmountMeleeHit, EFFECT_0, SPELL_AURA_MOD_HIT_CHANCE);
+            DoEffectCalcAmount += AuraEffectCalcAmountFn(spell_dru_pet_scaling_03_AuraScript::CalculateAmountSpellHit, EFFECT_1, SPELL_AURA_MOD_SPELL_HIT_CHANCE);
         }
     };
 
     AuraScript* GetAuraScript() const override
     {
-        return new spell_dk_pet_scaling_03_AuraScript();
+        return new spell_dru_pet_scaling_03_AuraScript();
     }
 };
-
-class spell_dk_rune_weapon_scaling_02 : public SpellScriptLoader
-{
-public:
-    spell_dk_rune_weapon_scaling_02() : SpellScriptLoader("spell_dk_rune_weapon_scaling_02") { }
-
-    class spell_dk_rune_weapon_scaling_02_AuraScript : public AuraScript
-    {
-        PrepareAuraScript(spell_dk_rune_weapon_scaling_02_AuraScript);
-
-        bool Load() override
-        {
-            if (!GetCaster() || !GetCaster()->GetOwner() || GetCaster()->GetOwner()->GetTypeId() != TYPEID_PLAYER)
-                return false;
-            return true;
-        }
-
-        void CalculateDamageDoneAmount(AuraEffect const* /* aurEff */, int32& amount, bool& /*canBeRecalculated*/)
-        {
-            if (Unit* pet = GetUnitOwner())
-            {
-                Unit* owner = pet->GetOwner();
-                if (!owner)
-                    return;
-
-                if (pet->IsGuardian())
-                    ((Guardian*)pet)->SetBonusDamage(owner->GetTotalAttackPowerValue(BASE_ATTACK));
-
-                for (uint8 i = 0; i < MAX_ITEM_PROTO_DAMAGES; ++i)
-                    amount += owner->CalculateDamage(BASE_ATTACK, true, true, i);
-            }
-        }
-
-        void CalculateAmountMeleeHaste(AuraEffect const* /* aurEff */, int32& amount, bool& /*canBeRecalculated*/)
-        {
-            if (!GetCaster() || !GetCaster()->GetOwner())
-                return;
-            if (Player* owner = GetCaster()->GetOwner()->ToPlayer())
-            {
-                // For others recalculate it from:
-                float HasteMelee = 0.0f;
-                // Increase hit from SPELL_AURA_MOD_HIT_CHANCE
-                HasteMelee += (1-owner->m_modAttackSpeedPct[BASE_ATTACK])*100;
-
-                amount += int32(HasteMelee);
-            }
-        }
-
-        void Register() override
-        {
-            DoEffectCalcAmount += AuraEffectCalcAmountFn(spell_dk_rune_weapon_scaling_02_AuraScript::CalculateDamageDoneAmount, EFFECT_0, SPELL_AURA_MOD_DAMAGE_DONE);
-            DoEffectCalcAmount += AuraEffectCalcAmountFn(spell_dk_rune_weapon_scaling_02_AuraScript::CalculateAmountMeleeHaste, EFFECT_1, SPELL_AURA_MELEE_SLOW);
-        }
-    };
-
-    AuraScript* GetAuraScript() const override
-    {
-        return new spell_dk_rune_weapon_scaling_02_AuraScript();
-    }
-};
-
 void AddSC_pet_spell_scripts()
 {
     new spell_gen_pet_calculate();

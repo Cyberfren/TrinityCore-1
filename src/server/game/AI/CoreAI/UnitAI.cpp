@@ -404,15 +404,20 @@ bool SpellTargetSelector::operator()(Unit const* target) const
         else
         {
             float meleeRange = 0.0f;
+            float primalInstinct = 0.0f;
+            float primalInstinctActive = 2.0f;
             if (_spellInfo->RangeEntry->Flags & SPELL_RANGE_RANGED)
             {
+                if (target->HasAura(80013))
+                    primalInstinct = meleeRange - primalInstinctActive;
+
                 meleeRange = _caster->GetCombatReach() + 4.0f / 3.0f;
                 meleeRange += target->GetCombatReach();
 
                 meleeRange = std::max(meleeRange, NOMINAL_MELEE_RANGE);
-            }
 
-            minRange = _caster->GetSpellMinRangeForTarget(target, _spellInfo) + meleeRange;
+            }
+            minRange = _caster->GetSpellMinRangeForTarget(target, _spellInfo) + meleeRange + primalInstinct;
             maxRange = _caster->GetSpellMaxRangeForTarget(target, _spellInfo);
 
             rangeMod = _caster->GetCombatReach();

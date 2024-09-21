@@ -178,7 +178,9 @@ LanguageDesc lang_description[LANGUAGES_COUNT] =
     { LANG_DRAENEI,     29932, SKILL_LANG_DRAENEI      },
     { LANG_ZOMBIE,          0, 0                       },
     { LANG_GNOMISH_BINARY,  0, 0                       },
-    { LANG_GOBLIN_BINARY,   0, 0                       }
+    { LANG_GOBLIN_BINARY,   0, 0                       },
+    { LANG_GOBLIN,      80837, SKILL_LANG_GOBLIN       },
+    { LANG_WORGEN,      81057, SKILL_LANG_WORGEN       }
 };
 
 LanguageDesc const* GetLanguageDescByID(uint32 lang)
@@ -495,7 +497,14 @@ void ObjectMgr::LoadCreatureTemplates()
         // 62
         "flags_extra,"
         // 63
-        "ScriptName"
+        "ScriptName,"
+            "NatRes,"
+            "ShadRes,"
+            "HolyRes,"
+            "FireRes,"
+            "ArcaneRes,"
+            "FrostRes,"
+            "PetAtkSpd"
         " FROM creature_template ct"
         " LEFT JOIN creature_template_movement ctm ON ct.entry = ctm.CreatureId");
 
@@ -568,7 +577,7 @@ void ObjectMgr::LoadCreatureTemplate(Field* fields)
     creatureTemplate.pickpocketLootId = fields[36].GetUInt32();
     creatureTemplate.SkinLootId       = fields[37].GetUInt32();
 
-    for (uint8 i = SPELL_SCHOOL_HOLY; i < MAX_SPELL_SCHOOL; ++i)
+    for (uint8 i = 0; i < MAX_SPELL_SCHOOL; ++i)
         creatureTemplate.resistance[i] = 0;
 
     for (uint8 i = 0; i < MAX_CREATURE_SPELLS; ++i)
@@ -615,6 +624,13 @@ void ObjectMgr::LoadCreatureTemplate(Field* fields)
     creatureTemplate.SpellSchoolImmuneMask = fields[61].GetUInt32();
     creatureTemplate.flags_extra           = fields[62].GetUInt32();
     creatureTemplate.ScriptID              = GetScriptId(fields[63].GetString());
+    creatureTemplate.NatRes = fields[64].GetUInt32();
+    creatureTemplate.ShadRes = fields[65].GetUInt32();
+    creatureTemplate.HolyRes = fields[66].GetUInt32();
+    creatureTemplate.FireRes = fields[67].GetUInt32();
+    creatureTemplate.ArcaneRes = fields[68].GetUInt32();
+    creatureTemplate.FrostRes = fields[69].GetUInt32();
+    creatureTemplate.PetAtkSpd             = fields[70].GetUInt32();
 }
 
 void ObjectMgr::LoadCreatureTemplateResistances()
@@ -4520,7 +4536,7 @@ void ObjectMgr::LoadPlayerInfo()
                     continue;
 
                 // skip expansion classes if not playing with expansion
-                if (sWorld->getIntConfig(CONFIG_EXPANSION) < EXPANSION_WRATH_OF_THE_LICH_KING && class_ == CLASS_DEATH_KNIGHT)
+                if (sWorld->getIntConfig(CONFIG_EXPANSION) < EXPANSION_WRATH_OF_THE_LICH_KING && class_ == CLASS_NECROMANCER)
                     continue;
 
                 // fatal error if no level 1 data
@@ -4669,6 +4685,34 @@ void ObjectMgr::BuildPlayerLevelInfo(uint8 race, uint8 _class, uint8 level, Play
                 info->stats[STAT_INTELLECT] += (lvl > 8 && !(lvl%2) ? 1: 0);
                 info->stats[STAT_SPIRIT]    += (lvl > 38 ? 1: (lvl > 9 && !(lvl%2) ? 1: 0));
                 break;
+            case CLASS_NECROMANCER:
+                info->stats[STAT_STRENGTH] += (lvl > 23 ? 2 : (lvl > 1 ? 1 : 0));
+                info->stats[STAT_STAMINA] += (lvl > 38 ? 2 : (lvl > 3 ? 1 : 0));
+                info->stats[STAT_AGILITY] += (lvl > 9 && !(lvl % 2) ? 1 : 0);
+                info->stats[STAT_INTELLECT] += (lvl > 33 ? 2 : (lvl > 2 ? 1 : 0));
+                info->stats[STAT_SPIRIT] += (lvl > 38 ? 2 : (lvl > 3 ? 1 : 0));
+                break;
+            case CLASS_MONK:
+                info->stats[STAT_STRENGTH] += (lvl > 5 ? 1 : 0);
+                info->stats[STAT_STAMINA] += (lvl > 4 ? 1 : 0);
+                info->stats[STAT_AGILITY] += (lvl > 16 ? 2 : (lvl > 1 ? 1 : 0));
+                info->stats[STAT_INTELLECT] += (lvl > 5 ? 1 : 0);
+                info->stats[STAT_SPIRIT] += (lvl > 4 ? 1 : 0);
+                break;
+            case CLASS_BARD:
+                info->stats[STAT_STRENGTH] += (lvl > 5 ? 1 : 0);
+                info->stats[STAT_STAMINA] += (lvl > 4 ? 1 : 0);
+                info->stats[STAT_AGILITY] += (lvl > 16 ? 2 : (lvl > 1 ? 1 : 0));
+                info->stats[STAT_INTELLECT] += (lvl > 5 ? 1 : 0);
+                info->stats[STAT_SPIRIT] += (lvl > 4 ? 1 : 0);
+                break;
+            case CLASS_WARDEN:
+                info->stats[STAT_STRENGTH] += (lvl > 3 ? 1 : 0);
+                info->stats[STAT_STAMINA] += (lvl > 33 ? 2 : (lvl > 1 ? 1 : 0));
+                info->stats[STAT_AGILITY] += (lvl > 38 ? 1 : (lvl > 7 && !(lvl % 2) ? 1 : 0));
+                info->stats[STAT_INTELLECT] += (lvl > 6 && (lvl % 2) ? 1 : 0);
+                info->stats[STAT_SPIRIT] += (lvl > 7 ? 1 : 0);
+                break;
             case CLASS_PRIEST:
                 info->stats[STAT_STRENGTH]  += (lvl > 9 && !(lvl%2) ? 1: 0);
                 info->stats[STAT_STAMINA]   += (lvl > 5  ? 1: 0);
@@ -4691,7 +4735,7 @@ void ObjectMgr::BuildPlayerLevelInfo(uint8 race, uint8 _class, uint8 level, Play
                 info->stats[STAT_SPIRIT]    += (lvl > 33 ? 2: (lvl > 2 ? 1: 0));
                 break;
             case CLASS_WARLOCK:
-                info->stats[STAT_STRENGTH]  += (lvl > 9 && !(lvl%2) ? 1: 0);
+                info->stats[STAT_STRENGTH] += (lvl > 23 ? 2 : (lvl > 1 ? 1 : 0));
                 info->stats[STAT_STAMINA]   += (lvl > 38 ? 2: (lvl > 3 ? 1: 0));
                 info->stats[STAT_AGILITY]   += (lvl > 9 && !(lvl%2) ? 1: 0);
                 info->stats[STAT_INTELLECT] += (lvl > 33 ? 2: (lvl > 2 ? 1: 0));
@@ -4703,6 +4747,12 @@ void ObjectMgr::BuildPlayerLevelInfo(uint8 race, uint8 _class, uint8 level, Play
                 info->stats[STAT_AGILITY]   += (lvl > 38 ? 2: (lvl > 8 && (lvl%2) ? 1: 0));
                 info->stats[STAT_INTELLECT] += (lvl > 38 ? 3: (lvl > 4 ? 1: 0));
                 info->stats[STAT_SPIRIT]    += (lvl > 38 ? 3: (lvl > 5 ? 1: 0));
+            case CLASS_WITCH:
+                info->stats[STAT_STRENGTH] += (lvl > 38 ? 2 : (lvl > 6 && (lvl % 2) ? 1 : 0));
+                info->stats[STAT_STAMINA] += (lvl > 32 ? 2 : (lvl > 4 ? 1 : 0));
+                info->stats[STAT_AGILITY] += (lvl > 38 ? 2 : (lvl > 8 && (lvl % 2) ? 1 : 0));
+                info->stats[STAT_INTELLECT] += (lvl > 38 ? 3 : (lvl > 4 ? 1 : 0));
+                info->stats[STAT_SPIRIT] += (lvl > 38 ? 3 : (lvl > 5 ? 1 : 0));
         }
     }
 }

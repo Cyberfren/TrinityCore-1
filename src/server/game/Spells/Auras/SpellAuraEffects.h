@@ -253,6 +253,10 @@ class TC_GAME_API AuraEffect
         void HandleModMeleeSpeedPct(AuraApplication const* aurApp, uint8 mode, bool apply) const;
         void HandleAuraModRangedHaste(AuraApplication const* aurApp, uint8 mode, bool apply) const;
         void HandleRangedAmmoHaste(AuraApplication const* aurApp, uint8 mode, bool apply) const;
+        //   CUSTOM
+        void HandleAuraModRacePlayer(AuraApplication const* aurApp, uint8 mode, bool apply) const;
+        void HandleModRatingPct(AuraApplication const* aurApp, uint8 mode, bool apply) const;
+
         //   combat rating
         void HandleModRating(AuraApplication const* aurApp, uint8 mode, bool apply) const;
         void HandleModRatingFromStat(AuraApplication const* aurApp, uint8 mode, bool apply) const;

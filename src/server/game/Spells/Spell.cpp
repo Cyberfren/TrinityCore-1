@@ -634,6 +634,41 @@ Spell::~Spell()
     // missing cleanup somewhere, mem leaks so let's crash
     AssertEffectExecuteData();
 }
+/*
+void Spell::HandleMusicPower(Player* caster)
+{
+    if (!caster)
+        return;
+
+    bool hit = true;
+    Player* modOwner = caster->GetSpellModOwner();
+
+    m_powerCost = caster->GetPower(POWER_MUSIC_POWER); // Always use all the holy power we have
+
+    if (!m_powerCost || !modOwner)
+        return;
+
+    if (uint32 targetGUID = m_targets.GetUnitTargetGUID())
+    {
+        for (std::list<TargetInfo>::iterator ihit = m_UniqueTargetInfo.begin(); ihit != m_UniqueTargetInfo.end(); ++ihit)
+        {
+            if (ihit->targetGUID == targetGUID)
+            {
+                if (ihit->missCondition != SPELL_MISS_NONE && ihit->missCondition != SPELL_MISS_MISS)
+                    hit = false;
+
+                break;
+            }
+        }
+
+        // The spell did hit the target, apply aura cost mods if there are any.
+        if (hit)
+        {
+            modOwner->ApplySpellMod(m_spellInfo->Id, SPELLMOD_COST, m_powerCost);
+            m_caster->ModifyPower(POWER_HOLY_POWER, -m_powerCost);
+        }
+    }
+}*/
 
 void Spell::InitExplicitTargets(SpellCastTargets const& targets)
 {
@@ -1352,6 +1387,28 @@ void Spell::SelectImplicitCasterDestTargets(SpellEffectInfo const& spellEffectIn
         case TARGET_DEST_DB:
             if (SpellTargetPosition const* st = sSpellMgr->GetSpellTargetPosition(m_spellInfo->Id, spellEffectInfo.EffectIndex))
             {
+                if (m_spellInfo->Id == 90237 || m_spellInfo->Id == 90239)
+                {
+                    if (Player* playerCaster = m_caster->ToPlayer())
+                    {
+                        if (playerCaster->GetRace() != RACE_DARKIRON)
+                        {                    
+                            finish(false);
+                            return;
+                        }
+                        else if (playerCaster->HasAura(90240))
+                        {                      
+                            finish(false);
+                            return;
+                        }
+                        else if (playerCaster->IsInCombat())
+                        {
+                            finish(false);
+                            return;
+                        }
+                    }
+                }
+
                 /// @todo fix this check
                 if (m_spellInfo->HasEffect(SPELL_EFFECT_TELEPORT_UNITS) || m_spellInfo->HasEffect(SPELL_EFFECT_BIND))
                     dest = SpellDestination(st->target_X, st->target_Y, st->target_Z, st->target_Orientation, (int32)st->target_mapId);
@@ -4296,7 +4353,7 @@ void Spell::SendSpellGo()
         castFlags |= CAST_FLAG_POWER_LEFT_SELF;
 
     if ((m_caster->GetTypeId() == TYPEID_PLAYER)
-        && (m_caster->ToPlayer()->GetClass() == CLASS_DEATH_KNIGHT)
+        && (m_caster->ToPlayer()->GetClass() == CLASS_NECROMANCER)
         && m_spellInfo->RuneCostID
         && m_spellInfo->PowerType == POWER_RUNE
         && !(_triggeredCastFlags & TRIGGERED_IGNORE_POWER_AND_REAGENT_COST))
@@ -4884,7 +4941,7 @@ SpellCastResult Spell::CheckRuneCost(uint32 runeCostID) const
     if (!player)
         return SPELL_CAST_OK;
 
-    if (player->GetClass() != CLASS_DEATH_KNIGHT)
+    if (player->GetClass() != CLASS_NECROMANCER)
         return SPELL_CAST_OK;
 
     SpellRuneCostEntry const* src = sSpellRuneCostStore.LookupEntry(runeCostID);
@@ -4924,7 +4981,7 @@ SpellCastResult Spell::CheckRuneCost(uint32 runeCostID) const
 
 void Spell::TakeRunePower(bool didHit)
 {
-    if (m_caster->GetTypeId() != TYPEID_PLAYER || m_caster->ToPlayer()->GetClass() != CLASS_DEATH_KNIGHT)
+    if (m_caster->GetTypeId() != TYPEID_PLAYER || m_caster->ToPlayer()->GetClass() != CLASS_NECROMANCER)
         return;
 
     SpellRuneCostEntry const* runeCostData = sSpellRuneCostStore.LookupEntry(m_spellInfo->RuneCostID);
@@ -5703,11 +5760,29 @@ SpellCastResult Spell::CheckCast(bool strict, uint32* param1 /*= nullptr*/, uint
                     (!pTempItem || !pTempItem->GetTemplate()->LockID || !pTempItem->IsLocked()))
                     return SPELL_FAILED_BAD_TARGETS;
 
+             /*   if (m_spellInfo->Id != 1842 || (m_targets.GetGOTarget() &&
+                    m_targets.GetGOTarget()->GetGOInfo()->type != GAMEOBJECT_TYPE_TRAP))
+                   if (m_caster->ToPlayer()->InBattleground() && // In Battleground players can use only flags and banners
+                        !m_caster->ToPlayer()->CanUseBattlegroundObject(m_targets.GetGOTarget()))
+                        return SPELL_FAILED_TRY_AGAIN;*/
+
                 if (m_spellInfo->Id != 1842 || (m_targets.GetGOTarget() &&
                     m_targets.GetGOTarget()->GetGOInfo()->type != GAMEOBJECT_TYPE_TRAP))
-                    if (m_caster->ToPlayer()->InBattleground() && // In Battleground players can use only flags and banners
-                        !m_caster->ToPlayer()->CanUseBattlegroundObject(m_targets.GetGOTarget()))
-                        return SPELL_FAILED_TRY_AGAIN;
+                {
+                    if (m_caster->ToPlayer()->InBattleground())
+                    {
+                        // Allow specific game objects without affecting flags and banners
+                        GameObject* goTarget = m_targets.GetGOTarget();
+                        if (goTarget)
+                        {
+                            uint32 goType = goTarget->GetGOInfo()->type;
+
+                            // Check if it's a type you want to allow, e.g., GAMEOBJECT_TYPE_FLAG or others
+                            if (goType != GAMEOBJECT_TYPE_FLAGSTAND && goType != GAMEOBJECT_TYPE_FLAGDROP && goType != GAMEOBJECT_TYPE_CHEST && !m_caster->ToPlayer()->CanUseBattlegroundObject(goTarget))
+                                return SPELL_FAILED_TRY_AGAIN;
+                        }
+                    }
+                }
 
                 // get the lock entry
                 uint32 lockId = 0;
@@ -6548,14 +6623,19 @@ std::pair<float, float> Spell::GetMinMaxRange(bool strict) const
         else
         {
             float meleeRange = 0.0f;
+            float primalInstinct = 0.0f;
+            float primalInstinctActive = 3.0f;
+
             if (m_spellInfo->RangeEntry->Flags & SPELL_RANGE_RANGED)
             {
+                if (unitCaster->HasAura(80013))
+                    primalInstinct = meleeRange - primalInstinctActive;
                 // when the target is not a unit, take the caster's combat reach as the target's combat reach.
                 if (unitCaster)
                     meleeRange = unitCaster->GetMeleeRange(target ? target : unitCaster);
             }
 
-            minRange = m_caster->GetSpellMinRangeForTarget(target, m_spellInfo) + meleeRange;
+            minRange = m_caster->GetSpellMinRangeForTarget(target, m_spellInfo) + meleeRange + primalInstinct;
             maxRange = m_caster->GetSpellMaxRangeForTarget(target, m_spellInfo);
 
             if (target || m_targets.GetCorpseTarget())
@@ -7285,10 +7365,8 @@ bool Spell::UpdatePointers()
         if (m_originalCaster && !m_originalCaster->IsInWorld())
             m_originalCaster = nullptr;
     }
-
     if (m_focusObjectGUID)
         focusObject = ObjectAccessor::GetGameObject(*m_caster, m_focusObjectGUID);
-
     if (m_castItemGUID && m_caster->GetTypeId() == TYPEID_PLAYER)
     {
         m_CastItem = m_caster->ToPlayer()->GetItemByGuid(m_castItemGUID);
@@ -8113,10 +8191,8 @@ bool Spell::CheckScriptEffectImplicitTargets(uint32 effIndex, uint32 effIndexToC
             if (!otherEffectHasSameTargetFunction)
                 return false;
         }
-
         return true;
     };
-
     for (SpellScript* script : m_loadedScripts)
     {
         if (!allEffectTargetScriptsAreShared(script->OnObjectTargetSelect, m_spellInfo, effIndex, effIndexToCheck))

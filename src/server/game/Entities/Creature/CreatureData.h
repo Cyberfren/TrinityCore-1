@@ -349,6 +349,13 @@ struct TC_GAME_API CreatureTemplate
     uint32  SpellSchoolImmuneMask;
     uint32  flags_extra;
     uint32  ScriptID;
+    uint32   NatRes;
+    uint32   ShadRes;
+    uint32   HolyRes;
+    uint32   FireRes;
+    uint32   ArcaneRes;
+    uint32   FrostRes;
+    uint32   PetAtkSpd;
     WorldPacket QueryData[TOTAL_LOCALES];
     uint32  GetRandomValidModelId() const;
     uint32  GetFirstValidModelId() const;

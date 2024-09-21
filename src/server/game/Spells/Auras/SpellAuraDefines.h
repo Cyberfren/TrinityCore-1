@@ -394,7 +394,9 @@ enum AuraType : uint32
     SPELL_AURA_PREVENT_RESURRECTION                         = 314,
     SPELL_AURA_UNDERWATER_WALKING                           = 315,
     SPELL_AURA_PERIODIC_HASTE                               = 316,
-    TOTAL_AURAS                                             = 317
+    SPELL_AURA_MOD_RATING_PCT = 317,
+    SPELL_AURA_MOD_PLAYER_RACE = 318,
+    TOTAL_AURAS                                             = 319
 };
 
 enum AuraObjectType
@@ -429,6 +431,8 @@ enum ShapeshiftForm
     FORM_TEST               = 0x14,
     FORM_ZOMBIE             = 0x15,
     FORM_METAMORPHOSIS      = 0x16,
+    FORM_FORESTWALKING      = 0x17,
+    FORM_DEATHWALKING       = 0x18,
     FORM_UNDEAD             = 0x19,
     FORM_MASTER_ANGLER      = 0x1A,
     FORM_FLIGHT_EPIC        = 0x1B,

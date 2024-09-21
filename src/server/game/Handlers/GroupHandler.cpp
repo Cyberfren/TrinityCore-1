@@ -20,12 +20,12 @@
 #include "Common.h"
 #include "DatabaseEnv.h"
 #include "Group.h"
+#include "PartyPackets.h"
 #include "GroupMgr.h"
 #include "Log.h"
 #include "MiscPackets.h"
 #include "ObjectAccessor.h"
 #include "ObjectMgr.h"
-#include "PartyPackets.h"
 #include "Pet.h"
 #include "Player.h"
 #include "SocialMgr.h"
@@ -63,12 +63,14 @@ void WorldSession::HandleGroupInviteOpcode(WorldPackets::Party::PartyInviteClien
 {
     TC_LOG_DEBUG("network", "WORLD: Received CMSG_GROUP_INVITE");
 
+
+
     // attempt add selected player
 
     // cheating
-    if (!normalizePlayerName(packet.TargetName))
+   if (!normalizePlayerName(packet.TargetName))
     {
-        SendPartyResult(PARTY_OP_INVITE, packet.TargetName, ERR_BAD_PLAYER_NAME_S);
+       SendPartyResult(PARTY_OP_INVITE, packet.TargetName, ERR_BAD_PLAYER_NAME_S);
         return;
     }
 
@@ -196,6 +198,7 @@ void WorldSession::HandleGroupInviteOpcode(WorldPackets::Party::PartyInviteClien
         }
     }
 
+    // ok, we do it
     WorldPackets::Party::PartyInvite partyInvite;
     partyInvite.Initialize(invitingPlayer, packet.ProposedRoles, true);
     invitedPlayer->SendDirectMessage(partyInvite.Write());
@@ -567,9 +570,10 @@ void WorldSession::HandleGroupRaidConvertOpcode(WorldPacket & /*recvData*/)
     if (_player->InBattleground())
         return;
 
-    // error handling
+    /** error handling **/
     if (!group->IsLeader(GetPlayer()->GetGUID()) || group->GetMembersCount() < 2)
         return;
+    /********************/
 
     // everything's fine, do it (is it 0 (PARTY_OP_INVITE) correct code)
     SendPartyResult(PARTY_OP_INVITE, "", ERR_PARTY_RESULT_OK);

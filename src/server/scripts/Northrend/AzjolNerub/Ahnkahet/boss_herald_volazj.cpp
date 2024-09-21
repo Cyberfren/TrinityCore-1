@@ -608,7 +608,7 @@ struct npc_twisted_visage : public ScriptedAI
                             break;
                     }
                     break;
-                case CLASS_DEATH_KNIGHT:
+                case CLASS_NECROMANCER:
                     _scheduler.Schedule(5s, [this](TaskContext deathGrip)
                     {
                         if (!me->IsWithinCombatRange(me->GetVictim(), 3.0f))

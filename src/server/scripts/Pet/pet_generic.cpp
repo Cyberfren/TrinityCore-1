@@ -28,7 +28,6 @@
 #include "SpellAuraEffects.h"
 #include "SpellScript.h"
 #include "ObjectAccessor.h"
-
 enum PandarenMonkMisc
 {
     SPELL_PANDAREN_MONK = 69800,
@@ -410,6 +409,10 @@ class spell_gen_elwynn_lamb : public AuraScript
         OnEffectPeriodic += AuraEffectPeriodicFn(spell_gen_elwynn_lamb::HandlePeriodic, EFFECT_0, SPELL_AURA_PERIODIC_TRIGGER_SPELL);
     }
 };
+
+
+
+
 
 void AddSC_generic_pet_scripts()
 {

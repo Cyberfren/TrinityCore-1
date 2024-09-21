@@ -536,7 +536,7 @@ struct boss_nefarian : public BossAI
                             Talk(SAY_ROGUE);
                             DoCast(me, SPELL_ROGUE);
                             break;
-                        case CLASS_DEATH_KNIGHT:
+                        case CLASS_NECROMANCER:
                             Talk(SAY_DEATH_KNIGHT);
                             DoCast(me, SPELL_DEATH_KNIGHT);
                             break;

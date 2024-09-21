@@ -25,7 +25,13 @@ enum PetEntry : uint32
     // Death Knight pets
     PET_GHOUL           = 26125,
     PET_RISEN_ALLY      = 30230,
-
+    PET_FETISH = 44206,
+    PET_TREANT = 44204,
+    PET_NGHOUL = 44216,
+    PET_REAVER = 44212,
+    PET_JCAT = 44214,
+    PET_JPAT = 44213,
+    PET_JRAP = 44215,
     // Shaman pet
     PET_SPIRIT_WOLF     = 29264
 };
@@ -81,10 +87,18 @@ class TC_GAME_API Minion : public TempSummon
         void SetFollowAngle(float angle) { m_followAngle = angle; }
 
         // Death Knight pets
+        bool IsTreant() const { return GetEntry() == PET_TREANT; }
         bool IsPetGhoul() const { return GetEntry() == PET_GHOUL; } // Ghoul may be guardian or pet
         bool IsRisenAlly() const { return GetEntry() == PET_RISEN_ALLY; }
-
+        bool IsPetFetish() const { return GetEntry() == PET_FETISH; }
         // Shaman pet
+        bool IsPetnGhoul() const { return GetEntry() == PET_NGHOUL; }
+        bool IsPetjCat() const { return GetEntry() == PET_JCAT; }
+        bool IsPetjPat() const { return GetEntry() == PET_JPAT; }
+        bool IsPetjRap() const { return GetEntry() == PET_JRAP; }
+        bool IsPetReaver() const { return GetEntry() == PET_REAVER; }
+
+
         bool IsSpiritWolf() const { return GetEntry() == PET_SPIRIT_WOLF; } // Spirit wolf from feral spirits
 
         bool IsGuardianPet() const;

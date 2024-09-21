@@ -16,7 +16,7 @@
  */
 
 /*
- * Scripts for spells with SPELLFAMILY_DEATHKNIGHT and SPELLFAMILY_GENERIC spells used by deathknight players.
+ * Scripts for spells with SPELLFAMILY_NECROMANCER and SPELLFAMILY_GENERIC spells used by deathknight players.
  * Ordered alphabetically using scriptname.
  * Scriptnames of files in this file should be prefixed with "spell_dk_".
  */
@@ -41,6 +41,7 @@
 
 enum DeathKnightSpells
 {
+    SPELL_DK_NECROTIC_STRIKE                    = 81309,
     SPELL_DK_ACCLIMATION_HOLY                   = 50490,
     SPELL_DK_ACCLIMATION_FIRE                   = 50362,
     SPELL_DK_ACCLIMATION_FROST                  = 50485,
@@ -108,7 +109,8 @@ enum DeathKnightSpells
     SPELL_DK_DEATH_STRIKE                       = 49998,
     SPELL_DK_HEART_STRIKE                       = 55050,
     SPELL_DK_OBLITERATE                         = 49020,
-    SPELL_DK_RUNE_STRIKE                        = 56815
+    SPELL_DK_RUNE_STRIKE                        = 56815,
+    SPELL_DK_ACCLIMATION_DEATH                  = 80567
 };
 
 enum DeathKnightSpellIcons
@@ -203,6 +205,9 @@ class spell_dk_acclimation : public AuraScript
     }
 };
 
+
+
+
 // 70656 - Advantage (T10 4P Melee Bonus)
 class spell_dk_advantage_t10_4p : public AuraScript
 {
@@ -217,7 +222,7 @@ class spell_dk_advantage_t10_4p : public AuraScript
     {
         if (Unit* caster = eventInfo.GetActor())
         {
-            if (caster->GetTypeId() != TYPEID_PLAYER || caster->GetClass() != CLASS_DEATH_KNIGHT)
+            if (caster->GetTypeId() != TYPEID_PLAYER || caster->GetClass() != CLASS_NECROMANCER)
                 return false;
 
             for (uint8 i = 0; i < MAX_RUNES; ++i)
@@ -385,7 +390,7 @@ class spell_dk_blade_barrier : public AuraScript
     {
         if (eventInfo.GetSpellInfo() != nullptr)
             if (Player* player = eventInfo.GetActor()->ToPlayer())
-                if (player->GetClass() == CLASS_DEATH_KNIGHT && player->IsBaseRuneSlotsOnCooldown(RUNE_BLOOD))
+                if (player->GetClass() == CLASS_NECROMANCER && player->IsBaseRuneSlotsOnCooldown(RUNE_BLOOD))
                     return true;
 
         return false;
@@ -416,7 +421,7 @@ private:
 
     bool Load() override
     {
-        return GetCaster()->GetTypeId() == TYPEID_PLAYER && GetCaster()->GetClass() == CLASS_DEATH_KNIGHT;
+        return GetCaster()->GetTypeId() == TYPEID_PLAYER && GetCaster()->GetClass() == CLASS_NECROMANCER;
     }
 
     void HandleAfterHit()
@@ -712,7 +717,7 @@ class spell_dk_death_gate : public SpellScript
 
     SpellCastResult CheckClass()
     {
-        if (GetCaster()->GetClass() != CLASS_DEATH_KNIGHT)
+        if (GetCaster()->GetClass() != CLASS_NECROMANCER)
         {
             SetCustomCastResultMessage(SPELL_CUSTOM_ERROR_MUST_BE_DEATH_KNIGHT);
             return SPELL_FAILED_CUSTOM_ERROR;
@@ -758,42 +763,42 @@ class spell_dk_death_pact : public SpellScript
 {
     PrepareSpellScript(spell_dk_death_pact);
 
+    SpellCastResult CheckCast()
+    {
+        // Check if we have valid targets, otherwise skip spell casting here
+        if (Player* player = GetCaster()->ToPlayer())
+            for (Unit::ControlList::const_iterator itr = player->m_Controlled.begin(); itr != player->m_Controlled.end(); ++itr)
+                if (Creature* undeadPet = (*itr)->ToCreature())
+                    if (undeadPet->IsAlive() &&
+                        undeadPet->GetOwnerGUID() == player->GetGUID() &&
+                        undeadPet->GetCreatureType() == CREATURE_TYPE_UNDEAD &&
+                        undeadPet->IsWithinDist(player, 100.0f, false))
+                        return SPELL_CAST_OK;
+
+        return SPELL_FAILED_NO_PET;
+    }
+
     void FilterTargets(std::list<WorldObject*>& targetList)
     {
-        targetList.remove_if([&](WorldObject* target)
+        Unit* target = nullptr;
+        for (std::list<WorldObject*>::iterator itr = targetList.begin(); itr != targetList.end(); ++itr)
         {
-            Unit* unit = target->ToUnit();
-            if (!unit)
-                return true;
-            if (unit->GetOwnerGUID() != GetCaster()->GetGUID())
-                return true;
-            if (unit->GetCreatureType() != CREATURE_TYPE_UNDEAD)
-                return true;
-            return false;
-        });
-
-        if (targetList.empty())
-        {
-            FinishCast(SPELL_FAILED_NO_PET);
-            return;
+            if (Unit* unit = (*itr)->ToUnit())
+                if (unit->GetOwnerGUID() == GetCaster()->GetGUID() && unit->GetCreatureType() == CREATURE_TYPE_UNDEAD)
+                {
+                    target = unit;
+                    break;
+                }
         }
 
-        targetList.remove_if([&](WorldObject* target)
-        {
-            return target->ToUnit()->IsImmunedToSpell(GetSpellInfo(), GetCaster());
-        });
-
-        if (targetList.empty())
-        {
-            FinishCast(SPELL_FAILED_IMMUNE);
-            return;
-        }
-
-        Trinity::Containers::RandomResize(targetList, 1);
+        targetList.clear();
+        if (target)
+            targetList.push_back(target);
     }
 
     void Register() override
     {
+        OnCheckCast += SpellCheckCastFn(spell_dk_death_pact::CheckCast);
         OnObjectAreaTargetSelect += SpellObjectAreaTargetSelectFn(spell_dk_death_pact::FilterTargets, EFFECT_1, TARGET_UNIT_DEST_AREA_ALLY);
     }
 };
@@ -807,7 +812,7 @@ class spell_dk_death_rune : public AuraScript
 
     bool Load() override
     {
-        return GetUnitOwner()->GetTypeId() == TYPEID_PLAYER && GetUnitOwner()->ToPlayer()->GetClass() == CLASS_DEATH_KNIGHT;
+        return GetUnitOwner()->GetTypeId() == TYPEID_PLAYER && GetUnitOwner()->ToPlayer()->GetClass() == CLASS_NECROMANCER;
     }
 
     bool CheckProc(ProcEventInfo& eventInfo)
@@ -818,7 +823,7 @@ class spell_dk_death_rune : public AuraScript
             return false;
 
         Player* player = caster->ToPlayer();
-        if (player->GetClass() != CLASS_DEATH_KNIGHT)
+        if (player->GetClass() != CLASS_NECROMANCER)
             return false;
 
         return true;
@@ -895,7 +900,7 @@ class spell_dk_death_strike : public SpellScript
             uint32 count = target->GetDiseasesByCaster(caster->GetGUID());
             int32 bp = int32(count * caster->CountPctFromMaxHealth(int32(GetEffectInfo(EFFECT_0).DamageMultiplier)));
             // Improved Death Strike
-            if (AuraEffect const* aurEff = caster->GetAuraEffect(SPELL_AURA_ADD_PCT_MODIFIER, SPELLFAMILY_DEATHKNIGHT, DK_ICON_ID_IMPROVED_DEATH_STRIKE, 0))
+            if (AuraEffect const* aurEff = caster->GetAuraEffect(SPELL_AURA_ADD_PCT_MODIFIER, SPELLFAMILY_NECROMANCER, DK_ICON_ID_IMPROVED_DEATH_STRIKE, 0))
                 AddPct(bp, caster->CalculateSpellDamage(aurEff->GetSpellInfo()->GetEffect(EFFECT_2)));
 
             // @todo castspell refactor note: this is not triggered - is this intended??
@@ -1006,7 +1011,7 @@ class spell_dk_glyph_of_scourge_strike_script : public SpellScript
             AuraEffect const* aurEff = *i;
             SpellInfo const* spellInfo = aurEff->GetSpellInfo();
             // search our Blood Plague and Frost Fever on target
-            if (spellInfo->SpellFamilyName == SPELLFAMILY_DEATHKNIGHT && spellInfo->SpellFamilyFlags[2] & 0x2 &&
+            if (spellInfo->SpellFamilyName == SPELLFAMILY_NECROMANCER && spellInfo->SpellFamilyFlags[2] & 0x2 &&
                 aurEff->GetCasterGUID() == caster->GetGUID())
             {
                 uint32 countMin = aurEff->GetBase()->GetMaxDuration();
@@ -1015,7 +1020,7 @@ class spell_dk_glyph_of_scourge_strike_script : public SpellScript
                 // this Glyph
                 countMax += 9000;
                 // talent Epidemic
-                if (AuraEffect const* epidemic = caster->GetAuraEffect(SPELL_AURA_ADD_FLAT_MODIFIER, SPELLFAMILY_DEATHKNIGHT, DK_ICON_ID_EPIDEMIC, EFFECT_0))
+                if (AuraEffect const* epidemic = caster->GetAuraEffect(SPELL_AURA_ADD_FLAT_MODIFIER, SPELLFAMILY_NECROMANCER, DK_ICON_ID_EPIDEMIC, EFFECT_0))
                     countMax += epidemic->GetAmount();
 
                 if (countMin < countMax)
@@ -1058,7 +1063,7 @@ class spell_dk_frost_fever : public AuraScript
     void HandleDispel(DispelInfo* /*dispelInfo*/)
     {
         if (Unit* caster = GetCaster())
-            if (AuraEffect* icyClutch = GetUnitOwner()->GetAuraEffect(SPELL_AURA_MOD_DECREASE_SPEED, SPELLFAMILY_DEATHKNIGHT, 0, 0x00040000, 0, caster->GetGUID()))
+            if (AuraEffect* icyClutch = GetUnitOwner()->GetAuraEffect(SPELL_AURA_MOD_DECREASE_SPEED, SPELLFAMILY_NECROMANCER, 0, 0x00040000, 0, caster->GetGUID()))
                 GetUnitOwner()->RemoveAurasDueToSpell(icyClutch->GetId());
     }
 
@@ -2510,7 +2515,7 @@ public:
             if (!player)
                 return;
 
-            if (player->GetClass() != CLASS_DEATH_KNIGHT || _runeIndex == MAX_RUNES)
+            if (player->GetClass() != CLASS_NECROMANCER || _runeIndex == MAX_RUNES)
                 return;
 
             player->AddRuneByAuraEffect(_runeIndex, RUNE_DEATH, aurEff);
@@ -2549,7 +2554,7 @@ public:
                 return;
 
             Player* player = caster->ToPlayer();
-            if (player->GetClass() != CLASS_DEATH_KNIGHT)
+            if (player->GetClass() != CLASS_NECROMANCER)
                 return;
 
             // needed later

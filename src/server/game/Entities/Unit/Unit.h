@@ -29,6 +29,7 @@
 #include <memory>
 #include <stack>
 #include <queue>
+#include "Timevalue.h"
 
 #define VISUAL_WAYPOINT 1 // Creature Entry ID used for waypoints show, visible only for GMs
 #define WORLD_TRIGGER 12999
@@ -186,9 +187,9 @@ enum UnitMods
     UNIT_MOD_RESISTANCE_START = UNIT_MOD_ARMOR,
     UNIT_MOD_RESISTANCE_END = UNIT_MOD_RESISTANCE_ARCANE + 1,
     UNIT_MOD_POWER_START = UNIT_MOD_MANA,
-    UNIT_MOD_POWER_END = UNIT_MOD_RUNIC_POWER + 1
+    UNIT_MOD_POWER_END = UNIT_MOD_CHI_POWER + 1
 };
-
+//customspellvalue
 enum BaseModGroup
 {
     CRIT_PERCENTAGE,

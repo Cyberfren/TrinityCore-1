@@ -21,7 +21,14 @@
  * Scriptnames of files in this file should be prefixed with "spell_warl_".
  */
 
-#include "ScriptMgr.h"
+#include "DatabaseEnv.h"
+
+#include "GameObject.h"
+#include "ObjectAccessor.h"
+#include "SpellInfo.h"
+#include "TemporarySummon.h"
+
+
 #include "Creature.h"
 #include "GameObject.h"
 #include "Log.h"
@@ -32,7 +39,8 @@
 #include "SpellAuraEffects.h"
 #include "SpellMgr.h"
 #include "SpellScript.h"
-
+#include "pet.h"
+#include "CharacterDatabase.h"
 enum WarlockSpells
 {
     SPELL_WARLOCK_DRAIN_SOUL_R1                     = 1120,
@@ -86,7 +94,8 @@ enum WarlockSpells
     SPELL_WARLOCK_FLAMESHADOW                       = 37379,
     SPELL_WARLOCK_GLYPH_OF_SUCCUBUS                 = 56250,
     SPELL_WARLOCK_IMPROVED_DRAIN_SOUL_R1            = 18213,
-    SPELL_WARLOCK_IMPROVED_DRAIN_SOUL_PROC          = 18371
+    SPELL_WARLOCK_IMPROVED_DRAIN_SOUL_PROC          = 18371,
+    SPELL_WARLOCK_NETHER_PROTECTION_DEATH            = 80568
 };
 
 enum WarlockSpellIcons
@@ -213,7 +222,7 @@ class spell_warl_create_healthstone : public SpellScriptLoader
                                 rank = 2;
                                 break;
                             default:
-                                TC_LOG_ERROR("spells", "Unknown rank of Improved Healthstone id: {}", aurEff->GetId());
+                                TC_LOG_ERROR("spells", "Unknown rank of Improved Healthstone id: %d", aurEff->GetId());
                                 break;
                         }
                     }
@@ -726,8 +735,12 @@ class spell_warl_life_tap : public SpellScript
         Unit* caster = GetCaster();
         int32 base = GetEffectInfo(effIndex).CalcValue();
 
+        float chealth = caster->GetMaxHealth();
+       // float cmana = caster->GetMaxPower(POWER_MANA);
         float penalty = caster->CalculateSpellpowerCoefficientLevelPenalty(GetSpellInfo());
+        //float fmana = (float)base + caster->GetUInt32Value(PLAYER_FIELD_MOD_DAMAGE_DONE_POS + SPELL_SCHOOL_SHADOW) * 0.5f * penalty + (cmana * 0.4f);
         float fmana = (float)base + caster->GetUInt32Value(PLAYER_FIELD_MOD_DAMAGE_DONE_POS + AsUnderlyingType(SPELL_SCHOOL_SHADOW)) * 0.5f * penalty;
+        float fbase = (float)base + (chealth * 0.2f);
 
         // Improved Life Tap mod
         if (AuraEffect const* aurEff = caster->GetDummyAuraEffect(SPELLFAMILY_WARLOCK, WARLOCK_ICON_ID_IMPROVED_LIFE_TAP, 0))
@@ -735,7 +748,7 @@ class spell_warl_life_tap : public SpellScript
         int32 mana = round(fmana);
 
         // Shouldn't Appear in Combat Log
-        caster->ModifyHealth(-base);
+        caster->ModifyHealth(-fbase);
 
         CastSpellExtraArgs args;
         args.AddSpellBP0(mana);
@@ -757,7 +770,9 @@ class spell_warl_life_tap : public SpellScript
 
     SpellCastResult CheckCast()
     {
-        if (int32(GetCaster()->GetHealth()) > int32(GetEffectInfo(EFFECT_0).CalcValue()))
+        Unit* caster = GetCaster();
+        float chealth = caster->GetMaxHealth();
+        if (int32(GetCaster()->GetHealth()) > int32(GetEffectInfo(EFFECT_0).CalcValue() + (chealth * 0.2f)))
             return SPELL_CAST_OK;
         return SPELL_FAILED_FIZZLE;
     }
@@ -783,7 +798,8 @@ class spell_warl_nether_protection : public AuraScript
             SPELL_WARLOCK_NETHER_PROTECTION_NATURE,
             SPELL_WARLOCK_NETHER_PROTECTION_FROST,
             SPELL_WARLOCK_NETHER_PROTECTION_SHADOW,
-            SPELL_WARLOCK_NETHER_PROTECTION_ARCANE
+            SPELL_WARLOCK_NETHER_PROTECTION_ARCANE,
+            SPELL_WARLOCK_NETHER_PROTECTION_DEATH,
         });
     }
 
@@ -1265,6 +1281,61 @@ class spell_warl_unstable_affliction : public AuraScript
     }
 };
 
+
+
+class spell_warlock_summon_succubus_model : public SpellScriptLoader
+{
+public:
+    spell_warlock_summon_succubus_model() : SpellScriptLoader("spell_warlock_summon_succubus_model") { }
+
+    class spell_warlock_summon_succubus_model_SpellScript : public SpellScript
+    {
+        PrepareSpellScript(spell_warlock_summon_succubus_model_SpellScript);
+
+        void HandleSummon(SpellEffIndex /*effIndex*/)
+        {
+            Unit* caster = GetCaster();
+            Creature* summonedPet = GetHitCreature();
+
+            if (!caster || !summonedPet || !caster->HasAura(81020))
+                return;
+
+            // Randomly choose one of the three model IDs
+            uint32 newModelId = 0;
+            switch (urand(0, 2))
+            {
+            case 0: newModelId = 42601; break;
+            case 1: newModelId = 42608; break;
+            case 2: newModelId = 42609; break;
+            }
+
+            // Change the pet's model ID
+            summonedPet->SetDisplayId(newModelId);
+
+            // Update the database for persistence
+            if (Player* player = caster->ToPlayer())
+            {
+                if (Pet* pet = player->GetPet())
+                {
+                    CharacterDatabasePreparedStatement* stmt = CharacterDatabase.GetPreparedStatement(CHAR_UPD_PET_MODEL_ID);
+                    stmt->setUInt32(0, pet->GetGUID().GetCounter());  // Pet GUID
+                    stmt->setUInt32(1, newModelId);                    // New Model ID
+                    CharacterDatabase.Execute(stmt);
+                }
+            }
+        }
+
+        void Register() override
+        {
+            OnEffectHitTarget += SpellEffectFn(spell_warlock_summon_succubus_model_SpellScript::HandleSummon, EFFECT_0, SPELL_EFFECT_SUMMON_PET);
+        }
+
+    };
+    SpellScript* GetSpellScript() const override
+    {
+        return new spell_warlock_summon_succubus_model_SpellScript();
+    }
+};
 void AddSC_warlock_spell_scripts()
 {
     RegisterSpellScript(spell_warl_curse_of_agony);
@@ -1298,4 +1369,5 @@ void AddSC_warlock_spell_scripts()
     RegisterSpellScriptWithArgs(spell_warl_t4_2p_bonus<SPELL_WARLOCK_FLAMESHADOW>, "spell_warl_t4_2p_bonus_shadow");
     RegisterSpellScriptWithArgs(spell_warl_t4_2p_bonus<SPELL_WARLOCK_SHADOWFLAME>, "spell_warl_t4_2p_bonus_fire");
     RegisterSpellScript(spell_warl_unstable_affliction);
+    RegisterSpellScript(spell_warlock_summon_succubus_model);
 }

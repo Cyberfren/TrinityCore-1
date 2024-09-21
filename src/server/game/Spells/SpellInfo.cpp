@@ -1420,6 +1420,7 @@ bool SpellInfo::IsAuraExclusiveBySpecificWith(SpellInfo const* spellInfo) const
         case SPELL_SPECIFIC_WARRIOR_ENRAGE:
         case SPELL_SPECIFIC_MAGE_ARCANE_BRILLANCE:
         case SPELL_SPECIFIC_PRIEST_DIVINE_SPIRIT:
+            case SPELL_SPECIFIC_TOTEMVISUAL:
             return spellSpec1 == spellSpec2;
         case SPELL_SPECIFIC_FOOD:
             return spellSpec2 == SPELL_SPECIFIC_FOOD
@@ -1575,12 +1576,14 @@ SpellCastResult SpellInfo::CheckLocation(uint32 map_id, uint32 zone_id, uint32 a
     // bg spell checks
     switch (Id)
     {
-        case 23333:                                         // Warsong Flag
-        case 23335:                                         // Silverwing Flag
-            return map_id == 489 && player && player->InBattleground() ? SPELL_CAST_OK : SPELL_FAILED_REQUIRES_AREA;
-        case 34976:                                         // Netherstorm Flag
-            return map_id == 566 && player && player->InBattleground() ? SPELL_CAST_OK : SPELL_FAILED_REQUIRES_AREA;
-        case 2584:                                          // Waiting to Resurrect
+    case 23333:
+    case 23335:
+        return (map_id == 489 || map_id == 726 || map_id == 1010) && player ? SPELL_CAST_OK : SPELL_FAILED_REQUIRES_AREA;
+    case 80516:                                         // Warsong Flagcase 80515:                                         // Silverwing Flag
+        return map_id == 726 && player && player->InBattleground() ? SPELL_CAST_OK : SPELL_FAILED_REQUIRES_AREA;
+    case 34976:                                         // Netherstorm Flag
+        return map_id == 566 && player && player->InBattleground() ? SPELL_CAST_OK : SPELL_FAILED_REQUIRES_AREA;
+    case 2584:                                          // Waiting to Resurrect
         case 22011:                                         // Spirit Heal Channel
         case 22012:                                         // Spirit Heal
         case 42792:                                         // Recently Dropped Flag
@@ -1986,6 +1989,10 @@ void SpellInfo::_LoadAuraState()
             (SpellFamilyFlags[2] & 2)))
             return AURA_STATE_CONFLAGRATE;
 
+        if (SpellFamilyName == SPELLFAMILY_WITCH && SpellFamilyFlags[2] & 0x80)
+
+            return AURA_STATE_SOUL_CRUSH;
+
         // Faerie Fire (druid versions)
         if (SpellFamilyName == SPELLFAMILY_DRUID && SpellFamilyFlags[0] & 0x400)
             return AURA_STATE_FAERIE_FIRE;
@@ -2120,6 +2127,29 @@ void SpellInfo::_LoadSpellSpecific()
                         default:
                             break;
                     }
+
+                    switch (Id)
+                    {
+
+                    case 81001:
+                    case 81002:
+                    case 81003:
+                    case 81004:
+                    case 81005:
+                    case 81006:
+                    case 81007:
+                    case 81008:
+                    case 81009:
+                    case 81010:
+                    case 81011:
+                    case 81012:
+                    case 81013:
+                    case 81000:
+
+                        return SPELL_SPECIFIC_TOTEMVISUAL;
+                    default:
+                        break;
+                    }
                 }
                 break;
             }
@@ -2210,7 +2240,7 @@ void SpellInfo::_LoadSpellSpecific()
 
                 break;
             }
-            case SPELLFAMILY_DEATHKNIGHT:
+            case SPELLFAMILY_NECROMANCER:
                 if (Id == 48266 || Id == 48263 || Id == 48265)
                     return SPELL_SPECIFIC_PRESENCE;
                 break;
@@ -2394,7 +2424,7 @@ void SpellInfo::_LoadSpellDiminishInfo()
                     return DIMINISHING_NONE;
                 break;
             }
-            case SPELLFAMILY_DEATHKNIGHT:
+            case SPELLFAMILY_NECROMANCER:
             {
                 // Hungering Cold (no flags)
                 if (SpellIconID == 2797)
@@ -3542,7 +3572,7 @@ bool _isPositiveEffectImpl(SpellInfo const* spellInfo, SpellEffectInfo const& ef
             if (spellInfo->SpellFamilyFlags[2] == 0x00000100)
                 return false;
             break;
-        case SPELLFAMILY_DEATHKNIGHT:
+        case SPELLFAMILY_NECROMANCER:
             if (spellInfo->SpellFamilyFlags[2] == 0x00000010) // Ebon Plague
                 return false;
             break;

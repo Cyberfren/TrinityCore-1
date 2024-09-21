@@ -38,8 +38,22 @@
 #include "WorldPacket.h"
 #include "WorldSession.h"
 #include "ZoneScript.h"
-
 #define PET_XP_FACTOR 0.05f
+enum impskin {
+
+    PURPLE_IMP = 16889,
+    WHITE_IMP = 16944,
+    RED_IMP = 16888,
+    GREEN_IMP = 16890
+};
+enum demons {
+    IMP = 416,
+    FELHUNTER = 417,
+    FELGUARD = 17252,
+    SUCCUBUS = 1863,
+    VOIDWALKER = 1860
+
+};
 
 Pet::Pet(Player* owner, PetType type) :
     Guardian(nullptr, owner, true), m_usedTalentCount(0), m_removed(false),
@@ -59,6 +73,9 @@ Pet::Pet(Player* owner, PetType type) :
 
     m_name = "Pet";
     m_focusRegenTimer = PET_FOCUS_REGEN_INTERVAL;
+
+
+
 }
 
 Pet::~Pet() = default;
@@ -86,6 +103,7 @@ void Pet::AddToWorld()
         GetCharmInfo()->SetIsFollowing(false);
         GetCharmInfo()->SetIsReturning(false);
     }
+
 }
 
 void Pet::RemoveFromWorld()
@@ -181,7 +199,76 @@ public:
         SetPreparedQuery(COOLDOWNS, stmt);
     }
 };
+void Pet::RandomizeWarlockPetDisplay(Player* owner, uint32 petEntry, Pet* pet)
+{
+    if (!owner || !pet)
+        return;
 
+    if (!owner->HasAura(81020))  // Replace with the correct aura ID
+        return;
+
+    std::srand(static_cast<unsigned int>(std::time(nullptr))); // Seed the randomizer
+
+    uint32 newDisplayId = pet->GetDisplayId(); // Store the new display ID
+
+    if (petEntry == SUCCUBUS)
+    {
+        const uint32 displayIDs[] = { 42601, 42608, 42609 };
+        newDisplayId = displayIDs[std::rand() % 3];
+    }
+    else if (petEntry == IMP)
+    {
+        const uint32 displayIDs[] = { RED_IMP, GREEN_IMP, PURPLE_IMP, WHITE_IMP };
+        newDisplayId = displayIDs[std::rand() % 4];
+    }
+    else if (petEntry == FELGUARD)
+    {
+        const uint32 displayIDs[] = { 42610, 42611, 42612 };
+        newDisplayId = displayIDs[std::rand() % 3];
+    }
+    else if (petEntry == FELHUNTER)
+    {
+        const uint32 displayIDs[] = { 42613, 42614, 42615 };
+        newDisplayId = displayIDs[std::rand() % 3];
+    }
+    else if (petEntry == VOIDWALKER)
+    {
+        const uint32 displayIDs[] = { 42616, 42617 };
+        newDisplayId = displayIDs[std::rand() % 2];
+    }
+
+    pet->SetDisplayId(newDisplayId);
+    pet->SetNativeDisplayId(newDisplayId);
+
+    // Update the modelID in the database
+}
+
+void Pet::UpdatePetModelID(Player* owner, uint32 petEntry, uint32 newModelID)
+{
+    if (!owner)
+        return;
+
+    // Fetch pet GUID from the database
+    CharacterDatabasePreparedStatement* stmt = CharacterDatabase.GetPreparedStatement(CHAR_SEL_PET_NUMBER_BY_ENTRY);
+    stmt->setUInt32(0, owner->GetGUID().GetCounter()); // Player's GUID
+    stmt->setUInt32(1, petEntry); // Pet entry ID
+
+    // Execute the query
+    PreparedQueryResult result = CharacterDatabase.Query(stmt);
+    if (result)
+    {
+        Field* fields = result->Fetch();
+        uint32 petGUID = fields[0].GetUInt32(); // Pet GUID
+
+        // Update the model ID in the database
+        stmt = CharacterDatabase.GetPreparedStatement(CHAR_UPD_PET_MODEL_ID);
+        stmt->setUInt32(0, newModelID); // New model ID
+        stmt->setUInt32(1, owner->GetGUID().GetCounter()); // Player's GUID
+        stmt->setUInt32(2, petGUID); // Pet GUID
+
+        CharacterDatabase.Execute(stmt);
+    }
+}
 bool Pet::LoadPetFromDB(Player* owner, uint32 petEntry, uint32 petnumber, bool current)
 {
     m_loading = true;
@@ -249,12 +336,91 @@ bool Pet::LoadPetFromDB(Player* owner, uint32 petEntry, uint32 petnumber, bool c
     }
 
     m_charmInfo->SetPetNumber(petInfo->PetNumber, IsPermanentPetFor(owner));
-
     SetDisplayId(petInfo->DisplayId);
     SetNativeDisplayId(petInfo->DisplayId);
+
+    // New randomization logic
+    if (owner->HasAura(81020)) // Check if the aura is active
+    {
+        std::srand(static_cast<unsigned int>(std::time(nullptr))); // Seed the randomizer
+
+        uint32 newDisplayId = petInfo->DisplayId; // Store the new display ID
+        uint32 petEntryId = GetEntry(); // Get the pet entry ID
+
+        if (petEntryId == SUCCUBUS)
+        {
+            const uint32 displayIDs[] = { 42601, 42608, 42609 }; // New display IDs for succubus
+            newDisplayId = displayIDs[std::rand() % 3]; // Pick one at random
+        }
+        else if (petEntryId == IMP)
+        {
+            const uint32 displayIDs[] = { RED_IMP, GREEN_IMP, PURPLE_IMP, WHITE_IMP }; // IMP forms
+            newDisplayId = displayIDs[std::rand() % 4];
+        }
+        else if (petEntryId == FELGUARD)
+        {
+            const uint32 displayIDs[] = { 42610, 42611, 42612 };
+            newDisplayId = displayIDs[std::rand() % 3];
+        }
+        else if (petEntryId == FELHUNTER)
+        {
+            const uint32 displayIDs[] = { 42613, 42614, 42615 };
+            newDisplayId = displayIDs[std::rand() % 3];
+        }
+        else if (petEntryId == VOIDWALKER)
+        {
+            const uint32 displayIDs[] = { 42616, 42617 };
+            newDisplayId = displayIDs[std::rand() % 2];
+        }
+
+        SetDisplayId(newDisplayId); // Set the new display ID
+        SetNativeDisplayId(newDisplayId);
+    }
+    else // Buff is not active, revert to default display IDs
+    {
+        uint32 newDisplayId = petInfo->DisplayId; // Default display ID
+        uint32 petEntryId = GetEntry(); // Get the pet entry ID
+
+        if (owner->GetClass() == CLASS_WARLOCK) // Ensure it's a warlock
+        {
+            if (petEntryId == SUCCUBUS)
+            {
+                newDisplayId = 4162; // Default succubus display ID
+            }
+            else if (petEntryId == IMP)
+            {
+                newDisplayId = 4449; // Default imp display ID
+            }
+            else if (petEntryId == FELGUARD)
+            {
+                newDisplayId = 14255; // Default felguard display ID
+            }
+            else if (petEntryId == FELHUNTER)
+            {
+                newDisplayId = 850; // Default felhunter display ID
+            }
+            else if (petEntryId == VOIDWALKER)
+            {
+                newDisplayId = 1132; // Default voidwalker display ID
+            }
+
+            SetDisplayId(newDisplayId); // Revert to default display ID
+            SetNativeDisplayId(newDisplayId);
+        }
+    }
+
+
+
+
+
+
+
+
+
     uint8 petlevel = petInfo->Level;
     ReplaceAllNpcFlags(UNIT_NPC_FLAG_NONE);
     SetName(petInfo->Name);
+    map->AddToMap(ToCreature());
 
     switch (getPetType())
     {
@@ -427,6 +593,9 @@ bool Pet::LoadPetFromDB(Player* owner, uint32 petEntry, uint32 petnumber, bool c
                     m_declinedname->name[i] = fields[i].GetString();
             }
         }
+
+
+
 
         // must be after SetMinion (owner guid check)
         LoadTemplateImmunities();
@@ -868,14 +1037,17 @@ bool Guardian::InitStatsForLevel(uint8 petlevel)
     ASSERT(cinfo);
 
     SetLevel(petlevel);
-
+   
     //Determine pet type
     PetType petType = MAX_PET_TYPE;
+
     if (IsPet() && GetOwner()->GetTypeId() == TYPEID_PLAYER)
     {
         if (GetOwner()->GetClass() == CLASS_WARLOCK
             || GetOwner()->GetClass() == CLASS_SHAMAN        // Fire Elemental
-            || GetOwner()->GetClass() == CLASS_DEATH_KNIGHT) // Risen Ghoul
+            || GetOwner()->GetClass() == CLASS_NECROMANCER
+            || GetOwner()->GetClass() == CLASS_DRUID
+            || GetOwner()->GetClass() == CLASS_WITCH)// Risen Ghoul
         {
             petType = SUMMON_PET;
         }
@@ -892,26 +1064,47 @@ bool Guardian::InitStatsForLevel(uint8 petlevel)
     }
 
     uint32 creature_ID = (petType == HUNTER_PET) ? 1 : cinfo->Entry;
-
-    SetMeleeDamageSchool(SpellSchools(cinfo->dmgschool));
-
-    SetStatFlatModifier(UNIT_MOD_ARMOR, BASE_VALUE, float(petlevel * 50));
-
-    SetAttackTime(BASE_ATTACK, BASE_ATTACK_TIME);
-    SetAttackTime(OFF_ATTACK, BASE_ATTACK_TIME);
-    SetAttackTime(RANGED_ATTACK, BASE_ATTACK_TIME);
-
-    SetModCastingSpeed(1.0f);
-
-    //scale
-    SetObjectScale(GetNativeObjectScale());
-
+   
+    if (IsPet() && GetOwner()->GetClass() == CLASS_HUNTER && petType == HUNTER_PET) {
+        SetMeleeDamageSchool(SpellSchools(cinfo->dmgschool));
+        SetStatFlatModifier(UNIT_MOD_ARMOR, BASE_VALUE, float(petlevel * 60));
+        SetAttackTime(BASE_ATTACK, cinfo->PetAtkSpd);
+        SetAttackTime(OFF_ATTACK, cinfo->PetAtkSpd);
+        SetAttackTime(RANGED_ATTACK, cinfo->PetAtkSpd);
+        SetModCastingSpeed(1.0f);
+        SetObjectScale(GetNativeObjectScale());
+       
+    }
+    else {
+        SetMeleeDamageSchool(SpellSchools(cinfo->dmgschool));
+        SetStatFlatModifier(UNIT_MOD_ARMOR, BASE_VALUE, float(petlevel * 50));
+        SetAttackTime(BASE_ATTACK, BASE_ATTACK_TIME);
+        SetAttackTime(OFF_ATTACK, BASE_ATTACK_TIME);
+        SetAttackTime(RANGED_ATTACK, BASE_ATTACK_TIME);
+        SetModCastingSpeed(1.0f);
+        SetObjectScale(GetNativeObjectScale());
+    }
+    if (IsHunterPet())
+    {
+        SetStatFlatModifier(UnitMods(UNIT_MOD_RESISTANCE_NATURE), BASE_VALUE, float(cinfo->NatRes));
+        SetStatFlatModifier(UnitMods(UNIT_MOD_RESISTANCE_SHADOW), BASE_VALUE, float(cinfo->ShadRes));
+        SetStatFlatModifier(UnitMods(UNIT_MOD_RESISTANCE_HOLY), BASE_VALUE, float(cinfo->HolyRes));
+        SetStatFlatModifier(UnitMods(UNIT_MOD_RESISTANCE_FROST), BASE_VALUE, float(cinfo->FrostRes));
+        SetStatFlatModifier(UnitMods(UNIT_MOD_RESISTANCE_FIRE), BASE_VALUE, float(cinfo->FireRes));
+        SetStatFlatModifier(UnitMods(UNIT_MOD_RESISTANCE_ARCANE), BASE_VALUE, float(cinfo->ArcaneRes));
+    }
+    else
+    {
+        for (uint8 i = 0; i < MAX_SPELL_SCHOOL; ++i)
+            SetStatFlatModifier(UnitMods(UNIT_MOD_RESISTANCE_START + i), BASE_VALUE, float(cinfo->resistance[i]));
+    }
     // Resistance
     // Hunters pet should not inherit resistances from creature_template, they have separate auras for that
-    if (!IsHunterPet())
-        for (uint8 i = SPELL_SCHOOL_HOLY; i < MAX_SPELL_SCHOOL; ++i)
-            SetStatFlatModifier(UnitMods(UNIT_MOD_RESISTANCE_START + i), BASE_VALUE, float(cinfo->resistance[i]));
-
+    //if (!IsHunterPet())
+     //       SetStatFlatModifier(UnitMods(UNIT_MOD_RESISTANCE_START + i), BA
+        //  for (uint8 i = SPELL_SCHOOL_HOLY; i < MAX_SPELL_SCHOOL; ++i)
+      //  for (uint8 i = 0; i < MAX_SPELL_SCHOOL; ++i)SE_VALUE, float(cinfo->resistance[i]));
+ 
     // Health, Mana or Power, Armor
     PetLevelInfo const* pInfo = sObjectMgr->GetPetLevelInfo(creature_ID, petlevel);
     if (pInfo)                                      // exist in DB
@@ -946,7 +1139,7 @@ bool Guardian::InitStatsForLevel(uint8 petlevel)
     // Power
     if (petType == HUNTER_PET) // Hunter pets have focus
         SetPowerType(POWER_FOCUS);
-    else if (IsPetGhoul() || IsRisenAlly()) // DK pets have energy
+    else if (IsPetGhoul() || IsRisenAlly() || IsTreant() || IsPetFetish() || IsPetnGhoul() || IsPetjCat()  || IsPetjRap() || IsPetjPat()  || IsPetReaver()) // DK pets have energy
     {
         SetPowerType(POWER_ENERGY);
         SetFullPower(POWER_ENERGY);
@@ -1028,6 +1221,20 @@ bool Guardian::InitStatsForLevel(uint8 petlevel)
                         SetCreateMana(28 + 10*petlevel);
                     }
                     SetBonusDamage(int32(GetOwner()->SpellBaseDamageBonusDone(SPELL_SCHOOL_MASK_FIRE) * 0.5f));
+                    SetBaseWeaponDamage(BASE_ATTACK, MINDAMAGE, float(petlevel * 4 - petlevel));
+                    SetBaseWeaponDamage(BASE_ATTACK, MAXDAMAGE, float(petlevel * 4 + petlevel));
+                    break;
+                }
+
+                case 54503: //air elemental
+                {
+                    if (!pInfo)
+                    {
+                        SetCreateHealth(40 * petlevel);
+                        SetCreateMana(28 + 10 * petlevel);
+                    }
+                    SetAttackTime(BASE_ATTACK, cinfo->BaseAttackTime);
+                    SetBonusDamage(int32(GetOwner()->SpellBaseDamageBonusDone(SPELL_SCHOOL_MASK_NATURE) * 0.8f));
                     SetBaseWeaponDamage(BASE_ATTACK, MINDAMAGE, float(petlevel * 4 - petlevel));
                     SetBaseWeaponDamage(BASE_ATTACK, MAXDAMAGE, float(petlevel * 4 + petlevel));
                     break;
@@ -1804,7 +2011,7 @@ void Pet::InitTalentForLevel()
 
 uint8 Pet::GetMaxTalentPointsForLevel(uint8 level) const
 {
-    uint8 points = (level >= 20) ? ((level - 16) / 4) : 0;
+    uint8 points = (level >= 10) ? ((level - 7) / 3) : 0;
     // Mod points from owner SPELL_AURA_MOD_PET_TALENT_POINTS
     points += GetOwner()->GetTotalAuraModifier(SPELL_AURA_MOD_PET_TALENT_POINTS);
     return points;
@@ -1862,8 +2069,12 @@ bool Pet::IsPermanentPetFor(Player* owner) const
             {
                 case CLASS_WARLOCK:
                     return GetCreatureTemplate()->type == CREATURE_TYPE_DEMON;
-                case CLASS_DEATH_KNIGHT:
+                case CLASS_NECROMANCER:
                     return GetCreatureTemplate()->type == CREATURE_TYPE_UNDEAD;
+                case CLASS_WITCH:
+                    return GetCreatureTemplate()->type == CREATURE_TYPE_BEAST;
+                case CLASS_DRUID:
+                    return GetCreatureTemplate()->type == CREATURE_TYPE_FOREST_GUARDIAN;            
                 default:
                     return false;
             }

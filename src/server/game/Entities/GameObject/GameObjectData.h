@@ -104,6 +104,7 @@ struct GameObjectTemplate
             uint32 groupLootRules;                          //15
             uint32 floatingTooltip;                         //16
             uint32 conditionID1;                            //17
+            uint32 noDamageImmune;
         } chest;
         //4 GAMEOBJECT_TYPE_BINDER - empty
         //5 GAMEOBJECT_TYPE_GENERIC
@@ -502,6 +503,7 @@ struct GameObjectTemplate
             case GAMEOBJECT_TYPE_BUTTON:     return button.noDamageImmune != 0;
             case GAMEOBJECT_TYPE_QUESTGIVER: return questgiver.noDamageImmune != 0;
             case GAMEOBJECT_TYPE_CHEST:      return true;                           // All chests cannot be opened while immune on 3.3.5a
+            //case GAMEOBJECT_TYPE_CHEST:      return chest.noDamageImmune != 0;                    // All chests cannot be opened while immune on 3.3.5a
             case GAMEOBJECT_TYPE_GOOBER:     return goober.noDamageImmune != 0;
             case GAMEOBJECT_TYPE_FLAGSTAND:  return flagstand.noDamageImmune != 0;
             case GAMEOBJECT_TYPE_FLAGDROP:   return flagdrop.noDamageImmune != 0;

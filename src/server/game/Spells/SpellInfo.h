@@ -137,7 +137,8 @@ enum SpellSpecificType
     SPELL_SPECIFIC_MAGE_ARCANE_BRILLANCE         = 25,
     SPELL_SPECIFIC_WARRIOR_ENRAGE                = 26,
     SPELL_SPECIFIC_PRIEST_DIVINE_SPIRIT          = 27,
-    SPELL_SPECIFIC_HAND                          = 28
+    SPELL_SPECIFIC_HAND                          = 28,
+    SPELL_SPECIFIC_TOTEMVISUAL = 29
 };
 
 enum SpellCustomAttributes
@@ -365,7 +366,7 @@ class TC_GAME_API SpellInfo
         std::array<SpellEffectInfo, MAX_SPELL_EFFECTS> _effects;
         uint32 ExplicitTargetMask;
         SpellChainNode const* ChainEntry;
-
+		//SpellEffectInfo Effects[MAX_SPELL_EFFECTS];
         SpellInfo(SpellEntry const* spellEntry);
         ~SpellInfo();
 
