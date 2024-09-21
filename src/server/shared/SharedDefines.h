@@ -17,7 +17,7 @@
 
 #ifndef TRINITY_SHAREDDEFINES_H
 #define TRINITY_SHAREDDEFINES_H
-
+//asdsadsadsadasd
 #include "DBCEnums.h"
 #include "Define.h"
 #include "EnumFlag.h"
